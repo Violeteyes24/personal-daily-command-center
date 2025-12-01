@@ -231,27 +231,92 @@ After setup is complete:
 
 ## Production Deployment
 
-### Deploy to Vercel
+### Deploy to Vercel with Supabase
 
-1. Push code to GitHub
-2. Go to [vercel.com](https://vercel.com)
-3. Import your repository
-4. Add environment variables (same as `.env.local`)
-5. Deploy!
+#### Step 1: Set Up Supabase Database
 
-### Environment Variables for Production
+1. **Create Supabase Project**
+   - Go to [https://supabase.com](https://supabase.com)
+   - Click "New Project"
+   - Choose organization and name your project
+   - Set a strong database password (save this!)
+   - Select a region close to your users
+   - Wait for project to be created (~2 minutes)
 
-In Vercel dashboard, add:
+2. **Get Connection Strings**
+   - Go to **Settings → Database** 
+   - Scroll to **Connection string** section
+   - You need TWO URLs:
+
+   **Transaction Pooler (for your app - use this as DATABASE_URL):**
+   - Select "Transaction" mode
+   - Copy the URI
+   - Format: `postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
+
+   **Session Pooler (for migrations - use this as DIRECT_URL):**
+   - Select "Session" mode  
+   - Copy the URI
+   - Format: `postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres`
+
+   > **Important:** Replace `[YOUR-PASSWORD]` with your actual database password
+
+3. **Run Initial Migration**
+   - Add both URLs to your local `.env.local`
+   - Run: `npx prisma db push`
+
+#### Step 2: Set Up Clerk Production Instance
+
+1. **Create Production Instance in Clerk**
+   - Go to [Clerk Dashboard](https://dashboard.clerk.com)
+   - Click your app name dropdown → "Production"
+   - Or create a new production instance
+
+2. **Get Production Keys**
+   - In the production instance, go to **API Keys**
+   - Copy both keys (they start with `pk_live_` and `sk_live_`)
+
+#### Step 3: Configure Vercel Environment Variables
+
+In Vercel project settings → Environment Variables, add:
 
 ```
-DATABASE_URL=your-production-database-url
+# Database (Supabase Transaction Pooler - port 6543)
+DATABASE_URL=postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+
+# Direct URL for migrations (Supabase Session Pooler - port 5432)  
+DIRECT_URL=postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres
+
+# Clerk Production Keys (NOT test keys!)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxxxx
 CLERK_SECRET_KEY=sk_live_xxxxx
+
+# Clerk URLs
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
-NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
+
+# App URL
+NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 ```
 
-> **Note**: For production, use `pk_live_` and `sk_live_` keys from Clerk's production instance.
+#### Step 4: Deploy and Verify
+
+1. Push your code and trigger a new deployment
+2. Visit your deployed URL
+3. Try signing up with Clerk
+4. Create a test task to verify database connection
+
+### Troubleshooting Production Issues
+
+#### "Server-side exception" / Database Connection Errors
+- Verify `DATABASE_URL` uses the pooler URL (port **6543**)
+- Check your password doesn't have unescaped special characters
+- Ensure Supabase project isn't paused (free tier pauses after inactivity)
+
+#### "Clerk: Development keys detected"  
+- You're using `pk_test_` / `sk_test_` keys in production
+- Switch to production keys: `pk_live_` / `sk_live_`
+- Create a production instance in Clerk if you haven't
+
+#### "Too many connections" / Timeout Errors
+- Make sure DATABASE_URL uses Transaction pooler (port 6543)
+- NOT the direct connection (port 5432)
