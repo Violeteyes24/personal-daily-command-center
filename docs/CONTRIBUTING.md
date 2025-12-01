@@ -183,55 +183,308 @@ Export from `src/actions/index.ts`:
 export * from "./goals";
 ```
 
-### Step 5: Page Component
+### Step 5: Feature Components
 
-Create `src/app/(dashboard)/dashboard/goals/page.tsx`:
+Create the component folder `src/components/goals/` with these files:
+
+#### goal-form.tsx (Create/Edit Dialog)
 
 ```typescript
-import { getGoals } from "@/actions/goals";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+"use client";
 
-export default async function GoalsPage() {
-  const result = await getGoals();
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { createGoalSchema, type CreateGoalInput } from "@/lib/validations/goal";
+import type { Goal } from "@/types";
+
+interface GoalFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: CreateGoalInput) => Promise<void>;
+  defaultValues?: Partial<Goal>;
+  mode?: "create" | "edit";
+}
+
+export function GoalForm({ open, onOpenChange, onSubmit, defaultValues, mode = "create" }: GoalFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<CreateGoalInput>({
+    resolver: zodResolver(createGoalSchema),
+    defaultValues: {
+      title: defaultValues?.title ?? "",
+      description: defaultValues?.description ?? "",
+    },
+  });
+
+  const handleSubmit = async (data: CreateGoalInput) => {
+    setIsSubmitting(true);
+    try {
+      await onSubmit(data);
+      form.reset();
+      onOpenChange(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{mode === "create" ? "Create Goal" : "Edit Goal"}</DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            {/* Form fields... */}
+            <DialogFooter>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {mode === "create" ? "Create" : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+#### goal-card.tsx (Single Item Display)
+
+```typescript
+"use client";
+
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { Goal } from "@/types";
+
+interface GoalCardProps {
+  goal: Goal;
+  onEdit: (goal: Goal) => void;
+  onDelete: (id: string) => Promise<void>;
+}
+
+export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
+  return (
+    <Card>
+      <CardContent className="flex items-start gap-3 p-4">
+        <div className="flex-1">
+          <p className="font-medium">{goal.title}</p>
+          {goal.description && (
+            <p className="text-sm text-muted-foreground">{goal.description}</p>
+          )}
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onEdit(goal)}>
+              <Pencil className="mr-2 h-4 w-4" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onDelete(goal.id)} className="text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+#### goal-list.tsx (List with Empty State)
+
+```typescript
+"use client";
+
+import { Target, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/shared";
+import { GoalCard } from "./goal-card";
+import type { Goal } from "@/types";
+
+interface GoalListProps {
+  goals: Goal[];
+  onEdit: (goal: Goal) => void;
+  onDelete: (id: string) => Promise<void>;
+  onAddNew: () => void;
+}
+
+export function GoalList({ goals, onEdit, onDelete, onAddNew }: GoalListProps) {
+  if (goals.length === 0) {
+    return (
+      <EmptyState
+        icon={<Target className="h-12 w-12" />}
+        title="No goals yet"
+        description="Create your first goal to get started"
+        action={<Button onClick={onAddNew}><Plus className="mr-2 h-4 w-4" /> Add Goal</Button>}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {goals.map((goal) => (
+        <GoalCard key={goal.id} goal={goal} onEdit={onEdit} onDelete={onDelete} />
+      ))}
+    </div>
+  );
+}
+```
+
+#### goals-client.tsx (Client Container)
+
+```typescript
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { GoalForm } from "./goal-form";
+import { GoalList } from "./goal-list";
+import { ConfirmDialog } from "@/components/shared";
+import { createGoal, updateGoal, deleteGoal } from "@/actions/goals";
+import type { Goal } from "@/types";
+import type { CreateGoalInput } from "@/lib/validations/goal";
+
+interface GoalsClientProps {
+  initialGoals: Goal[];
+}
+
+export function GoalsClient({ initialGoals }: GoalsClientProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const handleCreate = async (data: CreateGoalInput) => {
+    const result = await createGoal(data);
+    if (result.success) {
+      toast.success("Goal created");
+      startTransition(() => router.refresh());
+    } else {
+      toast.error(result.error);
+      throw new Error(result.error);
+    }
+  };
+
+  const handleUpdate = async (data: CreateGoalInput) => {
+    if (!editingGoal) return;
+    const result = await updateGoal({ id: editingGoal.id, ...data });
+    if (result.success) {
+      toast.success("Goal updated");
+      setEditingGoal(null);
+      startTransition(() => router.refresh());
+    } else {
+      toast.error(result.error);
+      throw new Error(result.error);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const result = await deleteGoal(deleteId);
+    if (result.success) {
+      toast.success("Goal deleted");
+      setDeleteId(null);
+      startTransition(() => router.refresh());
+    } else {
+      toast.error(result.error);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Goals</h1>
-          <p className="text-muted-foreground">
-            Track your long-term goals.
-          </p>
+          <p className="text-muted-foreground">Track your long-term goals.</p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Goal
+        <Button onClick={() => setIsFormOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" /> Add Goal
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Goals</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {result.success && result.data?.length ? (
-            // Render goals
-            <div>Goals list here</div>
-          ) : (
-            <div className="py-12 text-center text-muted-foreground">
-              No goals yet. Create your first goal!
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <GoalList
+        goals={initialGoals}
+        onEdit={(goal) => { setEditingGoal(goal); setIsFormOpen(true); }}
+        onDelete={async (id) => setDeleteId(id)}
+        onAddNew={() => setIsFormOpen(true)}
+      />
+
+      <GoalForm
+        open={isFormOpen}
+        onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingGoal(null); }}
+        onSubmit={editingGoal ? handleUpdate : handleCreate}
+        defaultValues={editingGoal ?? undefined}
+        mode={editingGoal ? "edit" : "create"}
+      />
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Delete Goal"
+        description="Are you sure? This action cannot be undone."
+        confirmText="Delete"
+        variant="destructive"
+      />
     </div>
   );
 }
 ```
 
-### Step 6: Add to Navigation
+#### index.ts (Barrel Export)
+
+```typescript
+export { GoalForm } from "./goal-form";
+export { GoalCard } from "./goal-card";
+export { GoalList } from "./goal-list";
+export { GoalsClient } from "./goals-client";
+```
+
+### Step 6: Page Component (Server)
+
+Create `src/app/(dashboard)/dashboard/goals/page.tsx`:
+
+```typescript
+import { getGoals } from "@/actions/goals";
+import { GoalsClient } from "@/components/goals";
+
+export default async function GoalsPage() {
+  const result = await getGoals();
+  const goals = result.success ? result.data ?? [] : [];
+
+  return <GoalsClient initialGoals={goals} />;
+}
+```
+
+### Step 7: Add to Navigation
 
 Edit `src/components/layouts/sidebar.tsx`:
 
@@ -248,17 +501,31 @@ const navItems = [
 ];
 ```
 
-### Step 7: Create Form Component (Optional)
+---
 
-Create `src/components/forms/goal-form.tsx`:
+## Feature Component Pattern Summary
 
-```typescript
-"use client";
+Every feature follows this structure:
 
-import { useState } from "react";
-import { createGoal } from "@/actions/goals";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+```
+components/{feature}/
+├── {feature}-form.tsx      # Dialog with form
+├── {feature}-card.tsx      # Single item display  
+├── {feature}-list.tsx      # List with empty state
+├── {feature}s-client.tsx   # State management container
+└── index.ts                # Barrel export
+```
+
+**Key Principles:**
+
+1. **Server Component (page.tsx)** - Fetches data, passes to client
+2. **Client Container** - Manages all state and handlers
+3. **Form Dialog** - Uses react-hook-form + zod for validation
+4. **Card Component** - Displays single item with actions dropdown
+5. **List Component** - Maps cards, handles empty state
+6. **Barrel Exports** - Clean imports via index.ts
+
+---
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 

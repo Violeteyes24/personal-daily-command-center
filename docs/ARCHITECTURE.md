@@ -111,10 +111,22 @@ src/
 │   │   ├── header.tsx            # Top header with user menu
 │   │   └── index.ts
 │   │
-│   ├── forms/                    # Form components (to be created)
-│   │   ├── task-form.tsx
+│   ├── tasks/                    # Task feature components
+│   │   ├── task-form.tsx         # Create/Edit task dialog
+│   │   ├── task-card.tsx         # Single task display
+│   │   ├── task-list.tsx         # List of tasks with empty state
+│   │   ├── tasks-client.tsx      # Client container with state
+│   │   └── index.ts              # Barrel export
+│   │
+│   ├── habits/                   # Habit feature components (same pattern)
 │   │   ├── habit-form.tsx
-│   │   └── expense-form.tsx
+│   │   ├── habit-card.tsx
+│   │   ├── habit-list.tsx
+│   │   ├── habits-client.tsx
+│   │   └── index.ts
+│   │
+│   ├── expenses/                 # Expense feature components (same pattern)
+│   │   └── ...
 │   │
 │   ├── dashboard/                # Dashboard-specific widgets
 │   │   ├── stat-card.tsx
@@ -225,7 +237,93 @@ interface ActionResponse<T = void> {
 - TypeScript knows the type of `data`
 - Consistent across all features
 
-### 5. Route Groups for Layout Separation
+### 5. Feature Component Pattern
+
+Each feature follows the same component structure:
+
+```
+components/
+└── {feature}/                    # e.g., tasks/, habits/, expenses/
+    ├── {feature}-form.tsx        # Create/Edit modal dialog
+    ├── {feature}-card.tsx        # Single item display
+    ├── {feature}-list.tsx        # List with empty state handling
+    ├── {feature}s-client.tsx     # Client container with all state/handlers
+    └── index.ts                  # Barrel export
+```
+
+**Component Responsibilities:**
+
+| Component | Server/Client | Purpose |
+|-----------|---------------|---------|
+| `{feature}-form.tsx` | Client | Modal dialog with form, validation, submit handling |
+| `{feature}-card.tsx` | Client | Display single item with actions dropdown |
+| `{feature}-list.tsx` | Client | Render list of cards, handle empty state |
+| `{feature}s-client.tsx` | Client | State management, action handlers, compose other components |
+| `page.tsx` | Server | Fetch data, pass to client component |
+
+**Data Flow Pattern:**
+
+```
+Server Component (page.tsx)
+    │
+    │ Fetches data via Server Action
+    ▼
+Client Container ({feature}s-client.tsx)
+    │
+    │ Manages state: isFormOpen, editingItem, deleteId
+    │ Defines handlers: handleCreate, handleUpdate, handleDelete
+    ▼
+├── {Feature}List
+│       │
+│       └── {Feature}Card (for each item)
+│
+├── {Feature}Form (dialog, controlled by isFormOpen)
+│
+└── ConfirmDialog (delete confirmation)
+```
+
+**Example: Tasks Page Flow**
+
+```typescript
+// 1. Server Component fetches data
+// app/(dashboard)/dashboard/tasks/page.tsx
+export default async function TasksPage() {
+  const result = await getTasks();
+  const tasks = result.success ? result.data ?? [] : [];
+  return <TasksClient initialTasks={tasks} />;
+}
+
+// 2. Client Container manages all interactions
+// components/tasks/tasks-client.tsx
+export function TasksClient({ initialTasks }: TasksClientProps) {
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  
+  const handleCreate = async (data: CreateTaskInput) => {
+    const result = await createTask(data);
+    if (result.success) {
+      toast.success("Task created");
+      router.refresh(); // Triggers server refetch
+    }
+  };
+  
+  return (
+    <>
+      <TaskList tasks={initialTasks} onEdit={handleEdit} ... />
+      <TaskForm open={isFormOpen} onSubmit={handleCreate} ... />
+    </>
+  );
+}
+```
+
+**Benefits:**
+- Clear separation of concerns
+- Server handles data fetching (efficient, secure)
+- Client handles interactivity (responsive, instant feedback)
+- Reusable pattern across all features
+- Easy to test components in isolation
+
+### 6. Route Groups for Layout Separation
 
 ```
 app/
