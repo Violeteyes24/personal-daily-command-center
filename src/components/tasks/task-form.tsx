@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -77,12 +77,31 @@ export function TaskForm({
   const form = useForm<CreateTaskInput>({
     resolver: zodResolver(createTaskSchema),
     defaultValues: {
-      title: defaultValues?.title ?? "",
-      description: defaultValues?.description ?? "",
-      priority: defaultValues?.priority ?? "medium",
-      dueDate: defaultValues?.dueDate ?? undefined,
+      title: "",
+      description: "",
+      priority: "medium",
+      dueDate: undefined,
     },
   });
+
+  // Reset form when defaultValues change (for edit mode)
+  useEffect(() => {
+    if (open && defaultValues) {
+      form.reset({
+        title: defaultValues.title ?? "",
+        description: defaultValues.description ?? "",
+        priority: defaultValues.priority ?? "medium",
+        dueDate: defaultValues.dueDate ?? undefined,
+      });
+    } else if (open && !defaultValues) {
+      form.reset({
+        title: "",
+        description: "",
+        priority: "medium",
+        dueDate: undefined,
+      });
+    }
+  }, [open, defaultValues, form]);
 
   const handleSubmit = async (data: CreateTaskInput) => {
     setIsSubmitting(true);

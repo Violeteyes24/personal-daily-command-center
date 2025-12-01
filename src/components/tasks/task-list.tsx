@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { CheckSquare, Plus } from "lucide-react";
+import { CheckSquare, Plus, LayoutGrid, LayoutList } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared";
@@ -11,8 +10,11 @@ import type { Task } from "@/types";
 // ==========================================
 // Types
 // ==========================================
+type LayoutType = "list" | "grid";
+
 interface TaskListProps {
   tasks: Task[];
+  layout: LayoutType;
   onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => Promise<void>;
@@ -26,6 +28,7 @@ interface TaskListProps {
 // ==========================================
 export function TaskList({
   tasks,
+  layout,
   onToggleComplete,
   onEdit,
   onDelete,
@@ -53,6 +56,10 @@ export function TaskList({
     );
   }
 
+  const gridClasses = layout === "grid" 
+    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" 
+    : "space-y-2";
+
   return (
     <div className="space-y-6">
       {/* Incomplete Tasks */}
@@ -61,11 +68,12 @@ export function TaskList({
           <h3 className="text-sm font-medium text-muted-foreground">
             To Do ({incompleteTasks.length})
           </h3>
-          <div className="space-y-2">
+          <div className={gridClasses}>
             {incompleteTasks.map((task) => (
               <TaskCard
                 key={task.id}
                 task={task}
+                layout={layout}
                 onToggleComplete={onToggleComplete}
                 onEdit={onEdit}
                 onDelete={onDelete}
@@ -81,11 +89,12 @@ export function TaskList({
           <h3 className="text-sm font-medium text-muted-foreground">
             Completed ({completedTasks.length})
           </h3>
-          <div className="space-y-2">
+          <div className={gridClasses}>
             {completedTasks.map((task) => (
               <TaskCard
                 key={task.id}
                 task={task}
+                layout={layout}
                 onToggleComplete={onToggleComplete}
                 onEdit={onEdit}
                 onDelete={onDelete}
