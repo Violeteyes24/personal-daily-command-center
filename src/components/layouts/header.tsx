@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { UserButton } from "@clerk/nextjs";
 import { useUser } from "@clerk/nextjs";
 import { getGreeting } from "@/lib/utils";
@@ -8,9 +9,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export function Header() {
-  const { user } = useUser();
-  const greeting = getGreeting();
-  const firstName = user?.firstName || "there";
+  const { user, isLoaded } = useUser();
+  const [greeting, setGreeting] = useState("Hello");
+  const [firstName, setFirstName] = useState("there");
+  const [dateString, setDateString] = useState("");
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+    setDateString(
+      new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      })
+    );
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded && user?.firstName) {
+      setFirstName(user.firstName);
+    }
+  }, [isLoaded, user?.firstName]);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -20,11 +39,7 @@ export function Header() {
           {greeting}, {firstName}! 👋
         </h2>
         <p className="text-sm text-muted-foreground">
-          {new Date().toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          })}
+          {dateString}
         </p>
       </div>
 
@@ -47,7 +62,6 @@ export function Header() {
 
         {/* User Button */}
         <UserButton
-          afterSignOutUrl="/"
           appearance={{
             elements: {
               avatarBox: "h-9 w-9",

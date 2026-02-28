@@ -8,7 +8,11 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   // Sync user to database on dashboard access
-  await syncUser();
+  try {
+    await syncUser();
+  } catch (error) {
+    console.error("[DashboardLayout] Failed to sync user:", error);
+  }
 
   return (
     <div className="min-h-screen bg-background">
