@@ -8,6 +8,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { NoteForm } from "./note-form";
 import { NoteCard } from "./note-card";
 import { ConfirmDialog, EmptyState } from "@/components/shared";
@@ -17,6 +24,7 @@ import {
   deleteNote,
   toggleNotePin,
 } from "@/actions/notes";
+import { NOTE_CATEGORIES } from "@/constants/categories";
 import type { Note } from "@/types";
 import type { CreateNoteInput, UpdateNoteInput } from "@/lib/validations/note";
 
@@ -46,6 +54,7 @@ export function NotesClient({ initialNotes }: NotesClientProps) {
   // Search & filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   // Delete confirmation state
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -79,14 +88,19 @@ export function NotesClient({ initialNotes }: NotesClientProps) {
         return false;
       }
 
+      // Category filter
+      if (selectedCategory !== "all" && (note.category ?? "general") !== selectedCategory) {
+        return false;
+      }
+
       return true;
     });
-  }, [initialNotes, searchQuery, selectedTag]);
+  }, [initialNotes, searchQuery, selectedTag, selectedCategory]);
 
   const pinnedNotes = filteredNotes.filter((n) => n.pinned);
   const unpinnedNotes = filteredNotes.filter((n) => !n.pinned);
 
-  const hasActiveFilters = searchQuery !== "" || selectedTag !== null;
+  const hasActiveFilters = searchQuery !== "" || selectedTag !== null || selectedCategory !== "all";
 
   // ==========================================
   // Handlers
@@ -159,6 +173,7 @@ export function NotesClient({ initialNotes }: NotesClientProps) {
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedTag(null);
+    setSelectedCategory("all");
   };
 
   // ==========================================
@@ -198,6 +213,24 @@ export function NotesClient({ initialNotes }: NotesClientProps) {
               className="pl-9"
             />
           </div>
+
+          {/* Category Filter */}
+          <Select
+            value={selectedCategory}
+            onValueChange={setSelectedCategory}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {NOTE_CATEGORIES.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  {cat.icon} {cat.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {hasActiveFilters && (
             <Button

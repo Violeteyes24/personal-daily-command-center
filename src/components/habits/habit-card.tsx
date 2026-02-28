@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { Check, MoreHorizontal, Pencil, Trash2, Flame } from "lucide-react";
+import { Check, MoreHorizontal, Pencil, Trash2, Flame, Bell } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -99,6 +99,12 @@ export function HabitCard({
               <span className="flex items-center gap-1 text-xs text-orange-500">
                 <Flame className="h-3 w-3" />
                 {streak} day{streak !== 1 ? "s" : ""}
+              </span>
+            )}
+            {habit.reminderEnabled && habit.reminderTime && (
+              <span className="flex items-center gap-1 text-xs text-blue-500">
+                <Bell className="h-3 w-3" />
+                {habit.reminderTime}
               </span>
             )}
           </div>

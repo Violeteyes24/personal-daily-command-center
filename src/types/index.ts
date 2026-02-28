@@ -27,6 +27,8 @@ export interface Habit {
   icon: string | null;
   frequency: Frequency;
   targetDays: number[] | null;
+  reminderEnabled: boolean;
+  reminderTime: string | null;
   createdAt: Date;
   updatedAt: Date;
   logs?: HabitLog[];
@@ -59,6 +61,7 @@ export interface Note {
   title: string | null;
   content: string;
   tags: string[];
+  category: string | null;
   pinned: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -92,4 +95,15 @@ export interface ActionResponse<T = void> {
   success: boolean;
   data?: T;
   error?: string;
+}
+
+// Budget Goal types
+export interface BudgetGoal {
+  id: string;
+  userId: string;
+  month: Date;
+  category: string | null;
+  amount: number;
+  createdAt: Date;
+  updatedAt: Date;
 }

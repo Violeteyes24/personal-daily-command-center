@@ -64,3 +64,14 @@ export const DEFAULT_HABIT_ICONS = [
   "🎸", // Practice instrument
   "🌐", // Learn language
 ] as const;
+
+export const NOTE_CATEGORIES = [
+  { value: "general", label: "General", icon: "📝" },
+  { value: "work", label: "Work", icon: "💼" },
+  { value: "personal", label: "Personal", icon: "👤" },
+  { value: "ideas", label: "Ideas", icon: "💡" },
+  { value: "journal", label: "Journal", icon: "📓" },
+  { value: "meeting", label: "Meeting Notes", icon: "🤝" },
+  { value: "reference", label: "Reference", icon: "📚" },
+  { value: "recipes", label: "Recipes", icon: "🍳" },
+] as const;

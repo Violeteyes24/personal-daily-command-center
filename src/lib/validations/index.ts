@@ -3,3 +3,4 @@ export * from "./habit";
 export * from "./expense";
 export * from "./note";
 export * from "./mood";
+export * from "./budget";

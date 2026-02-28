@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Sun, Moon, Monitor, User, Palette, SlidersHorizontal, Download, FileJson, FileSpreadsheet } from "lucide-react";
+import { Sun, Moon, Monitor, User, Palette, SlidersHorizontal, Download, FileJson, FileSpreadsheet, Bell } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +53,7 @@ export function SettingsClient({ user }: SettingsClientProps) {
   const [weekStart, setWeekStart] = useState("sunday");
   const [exportScope, setExportScope] = useState("all");
   const [exporting, setExporting] = useState<string | false>(false);
+  const [notifPermission, setNotifPermission] = useState<string>("default");
 
   useEffect(() => {
     setMounted(true);
@@ -63,6 +64,10 @@ export function SettingsClient({ user }: SettingsClientProps) {
     if (savedCurrency) setCurrency(savedCurrency);
     if (savedGroup) setDefaultTaskGroup(savedGroup);
     if (savedWeekStart) setWeekStart(savedWeekStart);
+    // Check notification permission
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setNotifPermission(Notification.permission);
+    }
   }, []);
 
   function handleCurrencyChange(value: string) {
@@ -277,6 +282,50 @@ export function SettingsClient({ user }: SettingsClientProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notifications */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <CardTitle>Notifications</CardTitle>
+              <CardDescription>Manage browser notification permissions for habit reminders</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Browser Notifications</p>
+              <p className="text-xs text-muted-foreground">
+                {notifPermission === "granted"
+                  ? "Notifications are enabled. You'll receive habit reminders."
+                  : notifPermission === "denied"
+                    ? "Notifications are blocked. Please enable them in your browser settings."
+                    : "Enable notifications to receive habit reminders at scheduled times."}
+              </p>
+            </div>
+            <Button
+              variant={notifPermission === "granted" ? "secondary" : "default"}
+              size="sm"
+              disabled={notifPermission === "denied"}
+              onClick={async () => {
+                if (notifPermission === "granted") return;
+                const result = await Notification.requestPermission();
+                setNotifPermission(result);
+                if (result === "granted") {
+                  toast.success("Notifications enabled!");
+                } else {
+                  toast.error("Notification permission denied");
+                }
+              }}
+            >
+              {notifPermission === "granted" ? "Enabled" : "Enable"}
+            </Button>
           </div>
         </CardContent>
       </Card>

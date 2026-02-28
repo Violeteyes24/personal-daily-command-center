@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { NOTE_CATEGORIES } from "@/constants/categories";
 import type { Note } from "@/types";
 
 // ==========================================
@@ -112,6 +113,16 @@ export function NoteCard({ note, onEdit, onDelete, onTogglePin }: NoteCardProps)
       </CardHeader>
 
       <CardContent className="pb-4">
+        {/* Category */}
+        {note.category && note.category !== "general" && (
+          <div className="mb-2">
+            <Badge variant="secondary" className="text-xs">
+              {NOTE_CATEGORIES.find((c) => c.value === note.category)?.icon ?? "📝"}{" "}
+              {NOTE_CATEGORIES.find((c) => c.value === note.category)?.label ?? note.category}
+            </Badge>
+          </div>
+        )}
+
         {/* Content Preview */}
         <p className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">
           {note.content}

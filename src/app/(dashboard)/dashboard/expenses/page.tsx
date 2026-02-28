@@ -1,4 +1,5 @@
 import { getExpenses, getExpenseStats } from "@/actions/expenses";
+import { getBudgetGoals } from "@/actions/budget";
 import { ExpensesClient } from "@/components/expenses";
 
 interface ExpensesPageProps {
@@ -20,13 +21,15 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   const startOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);
   const endOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0);
 
-  const [expensesResult, statsResult] = await Promise.all([
+  const [expensesResult, statsResult, budgetResult] = await Promise.all([
     getExpenses({ startDate: startOfMonth, endDate: endOfMonth }),
     getExpenseStats(targetMonth),
+    getBudgetGoals(targetMonth),
   ]);
 
   const expenses = expensesResult.success ? expensesResult.data ?? [] : [];
   const stats = statsResult.success ? statsResult.data ?? null : null;
+  const budgetGoals = budgetResult.success ? budgetResult.data ?? [] : [];
 
   const monthStr = `${targetMonth.getFullYear()}-${String(targetMonth.getMonth() + 1).padStart(2, "0")}`;
 
@@ -35,6 +38,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
       initialExpenses={expenses}
       stats={stats}
       currentMonth={monthStr}
+      budgetGoals={budgetGoals}
     />
   );
 }

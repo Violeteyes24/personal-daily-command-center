@@ -1,6 +1,8 @@
 import { Sidebar } from "@/components/layouts/sidebar";
 import { Header } from "@/components/layouts/header";
+import { HabitReminderProvider } from "@/components/habits";
 import { syncUser } from "@/lib/auth";
+import { getHabits } from "@/actions/habits";
 
 export default async function DashboardLayout({
   children,
@@ -14,6 +16,19 @@ export default async function DashboardLayout({
     console.error("[DashboardLayout] Failed to sync user:", error);
   }
 
+  // Fetch habits for reminder provider
+  let reminderHabits: Awaited<ReturnType<typeof getHabits>>["data"] = [];
+  try {
+    const result = await getHabits();
+    if (result.success && result.data) {
+      reminderHabits = result.data.filter(
+        (h) => h.reminderEnabled && h.reminderTime
+      );
+    }
+  } catch {
+    // Reminders are non-critical, silently ignore
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
@@ -21,6 +36,9 @@ export default async function DashboardLayout({
         <Header />
         <main className="p-4 md:p-6">{children}</main>
       </div>
+      {reminderHabits.length > 0 && (
+        <HabitReminderProvider habits={reminderHabits} />
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Wallet, X, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Wallet, X, Filter, ChevronLeft, ChevronRight, Target } from "lucide-react";
 import { toast } from "sonner";
 import { format, parse } from "date-fns";
 
@@ -18,11 +18,14 @@ import {
 import { ExpenseForm } from "./expense-form";
 import { ExpenseCard } from "./expense-card";
 import { ExpensePieChart } from "./expense-pie-chart";
+import { BudgetGoalForm } from "./budget-goal-form";
+import { BudgetProgress } from "./budget-progress";
 import { ConfirmDialog, EmptyState } from "@/components/shared";
 import { createExpense, updateExpense, deleteExpense } from "@/actions/expenses";
+import { upsertBudgetGoal } from "@/actions/budget";
 import { formatCurrency } from "@/lib/utils";
 import { EXPENSE_CATEGORIES } from "@/constants/categories";
-import type { Expense } from "@/types";
+import type { Expense, BudgetGoal } from "@/types";
 import type {
   CreateExpenseInput,
   UpdateExpenseInput,
@@ -38,6 +41,7 @@ interface ExpensesClientProps {
     byCategory: { category: string; total: number }[];
   } | null;
   currentMonth: string; // "YYYY-MM"
+  budgetGoals: BudgetGoal[];
 }
 
 type CategoryFilter = "all" | string;
@@ -45,13 +49,16 @@ type CategoryFilter = "all" | string;
 // ==========================================
 // Component
 // ==========================================
-export function ExpensesClient({ initialExpenses, stats, currentMonth }: ExpensesClientProps) {
+export function ExpensesClient({ initialExpenses, stats, currentMonth, budgetGoals }: ExpensesClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   // Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+
+  // Budget form state
+  const [isBudgetFormOpen, setIsBudgetFormOpen] = useState(false);
 
   // Filter state
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
@@ -144,6 +151,21 @@ export function ExpensesClient({ initialExpenses, stats, currentMonth }: Expense
     }
   };
 
+  const handleSaveBudget = async (data: { category: string | null; amount: number }) => {
+    const result = await upsertBudgetGoal({
+      month: monthDate,
+      category: data.category,
+      amount: data.amount,
+    });
+    if (result.success) {
+      toast.success("Budget goal saved");
+      startTransition(() => router.refresh());
+    } else {
+      toast.error(result.error ?? "Failed to save budget goal");
+      throw new Error(result.error);
+    }
+  };
+
   // ==========================================
   // Render
   // ==========================================
@@ -210,6 +232,30 @@ export function ExpensesClient({ initialExpenses, stats, currentMonth }: Expense
           <ExpensePieChart data={stats.byCategory} totalAmount={stats.total} />
         </div>
       )}
+
+      {/* Budget Goals */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+            <Target className="h-4 w-4" />
+            Budget Goals
+          </h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsBudgetFormOpen(true)}
+          >
+            {budgetGoals.length > 0 ? "Add Goal" : "Set Budget"}
+          </Button>
+        </div>
+        {budgetGoals.length > 0 && stats && (
+          <BudgetProgress
+            goals={budgetGoals}
+            spending={stats.byCategory}
+            totalSpent={stats.total}
+          />
+        )}
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
@@ -303,6 +349,13 @@ export function ExpensesClient({ initialExpenses, stats, currentMonth }: Expense
         description="Are you sure you want to delete this expense? This action cannot be undone."
         confirmText="Delete"
         variant="destructive"
+      />
+
+      {/* Budget Goal Form */}
+      <BudgetGoalForm
+        open={isBudgetFormOpen}
+        onOpenChange={setIsBudgetFormOpen}
+        onSubmit={handleSaveBudget}
       />
     </div>
   );

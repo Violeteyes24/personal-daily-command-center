@@ -26,9 +26,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   createNoteSchema,
   type CreateNoteInput,
 } from "@/lib/validations/note";
+import { NOTE_CATEGORIES } from "@/constants/categories";
 import type { Note } from "@/types";
 
 // ==========================================
@@ -61,6 +69,7 @@ export function NoteForm({
       title: "",
       content: "",
       tags: [],
+      category: "general",
       pinned: false,
     },
   });
@@ -71,6 +80,7 @@ export function NoteForm({
         title: defaultValues.title ?? "",
         content: defaultValues.content ?? "",
         tags: defaultValues.tags ?? [],
+        category: defaultValues.category ?? "general",
         pinned: defaultValues.pinned ?? false,
       });
     } else if (open && !defaultValues) {
@@ -78,6 +88,7 @@ export function NoteForm({
         title: "",
         content: "",
         tags: [],
+        category: "general",
         pinned: false,
       });
     }
@@ -160,6 +171,35 @@ export function NoteForm({
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Category */}
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select
+                    value={field.value ?? "general"}
+                    onValueChange={field.onChange}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {NOTE_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.icon} {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

@@ -10,6 +10,7 @@ import {
   Wallet,
   StickyNote,
   Smile,
+  BarChart3,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -31,6 +32,7 @@ const navItems = [
   { title: "Expenses", href: "/dashboard/expenses", icon: Wallet },
   { title: "Notes", href: "/dashboard/notes", icon: StickyNote },
   { title: "Mood", href: "/dashboard/mood", icon: Smile },
+  { title: "Reports", href: "/dashboard/reports", icon: BarChart3 },
 ];
 
 const bottomNavItems = [

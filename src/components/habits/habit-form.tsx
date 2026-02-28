@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Bell } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,8 +21,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -66,6 +68,8 @@ export function HabitForm({
       name: "",
       icon: "💧",
       frequency: "daily",
+      reminderEnabled: false,
+      reminderTime: null,
     },
   });
 
@@ -75,12 +79,16 @@ export function HabitForm({
         name: defaultValues.name ?? "",
         icon: defaultValues.icon ?? "💧",
         frequency: defaultValues.frequency ?? "daily",
+        reminderEnabled: defaultValues.reminderEnabled ?? false,
+        reminderTime: defaultValues.reminderTime ?? null,
       });
     } else if (open && !defaultValues) {
       form.reset({
         name: "",
         icon: "💧",
         frequency: "daily",
+        reminderEnabled: false,
+        reminderTime: null,
       });
     }
   }, [open, defaultValues, form]);
@@ -196,6 +204,53 @@ export function HabitForm({
                 </FormItem>
               )}
             />
+
+            {/* Reminder */}
+            <div className="space-y-3 rounded-lg border p-3">
+              <FormField
+                control={form.control}
+                name="reminderEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center gap-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-0.5">
+                      <FormLabel className="flex items-center gap-1.5">
+                        <Bell className="h-3.5 w-3.5" />
+                        Daily Reminder
+                      </FormLabel>
+                      <FormDescription className="text-xs">
+                        Get a browser notification at a set time
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              {form.watch("reminderEnabled") && (
+                <FormField
+                  control={form.control}
+                  name="reminderTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Reminder Time</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="time"
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
 
             <DialogFooter>
               <Button

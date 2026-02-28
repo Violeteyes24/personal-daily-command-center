@@ -24,11 +24,12 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  tasks     Task[]
-  habits    Habit[]
-  expenses  Expense[]
-  notes     Note[]
-  moods     MoodEntry[]
+  tasks       Task[]
+  habits      Habit[]
+  expenses    Expense[]
+  notes       Note[]
+  moods       MoodEntry[]
+  budgetGoals BudgetGoal[]
 }
 
 // ==========================================
@@ -74,15 +75,17 @@ enum Recurrence {
 // Habit Model
 // ==========================================
 model Habit {
-  id         String    @id @default(cuid())
-  userId     String
-  name       String
-  icon       String?
-  frequency  Frequency @default(daily)
-  targetDays Int[]     @default([]) // 0-6 for days of week
-  archived   Boolean   @default(false)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  icon            String?
+  frequency       Frequency @default(daily)
+  targetDays      Int[]     @default([]) // 0-6 for days of week
+  archived        Boolean   @default(false)
+  reminderEnabled Boolean   @default(false)
+  reminderTime    String?   // HH:MM format
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   // Relations
   user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -141,6 +144,7 @@ model Note {
   title     String?
   content   String
   tags      String[] @default([])
+  category  String?  @default("general")
   pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -150,6 +154,27 @@ model Note {
 
   @@index([userId])
   @@index([pinned])
+  @@index([category])
+}
+
+// ==========================================
+// Budget Goal Model
+// ==========================================
+model BudgetGoal {
+  id        String   @id @default(cuid())
+  userId    String
+  month     DateTime @db.Date // first of month
+  category  String?  // null = overall budget
+  amount    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, category])
+  @@index([userId])
+  @@index([month])
 }
 
 // ==========================================
