@@ -6,7 +6,9 @@ import { useUser } from "@clerk/nextjs";
 import { getGreeting } from "@/lib/utils";
 import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { MobileSidebar } from "@/components/layouts/sidebar";
+import { CommandPalette } from "@/components/shared/command-palette";
 
 export function Header() {
   const { user, isLoaded } = useUser();
@@ -32,28 +34,49 @@ export function Header() {
   }, [isLoaded, user?.firstName]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Greeting */}
-      <div>
-        <h2 className="text-lg font-semibold">
-          {greeting}, {firstName}! 👋
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {dateString}
-        </p>
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 px-4 md:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* Left: mobile hamburger + greeting */}
+      <div className="flex items-center gap-3">
+        <MobileSidebar />
+        <div>
+          <h2 className="text-lg font-semibold">
+            {greeting}, {firstName}! 👋
+          </h2>
+          <p className="text-sm text-muted-foreground hidden sm:block">
+            {dateString}
+          </p>
+        </div>
       </div>
 
       {/* Right Side */}
-      <div className="flex items-center gap-4">
-        {/* Search (placeholder for future) */}
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search..."
-            className="w-64 pl-9"
-            disabled
-          />
-        </div>
+      <div className="flex items-center gap-2 md:gap-4">
+        {/* Search trigger */}
+        <Button
+          variant="outline"
+          className="relative hidden md:flex w-64 justify-start text-sm text-muted-foreground"
+          onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}
+        >
+          <Search className="mr-2 h-4 w-4" />
+          Search...
+          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+            <span className="text-xs">Ctrl</span>K
+          </kbd>
+        </Button>
+        {/* Mobile search icon */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}
+        >
+          <Search className="h-5 w-5" />
+        </Button>
+
+        {/* Command Palette */}
+        <CommandPalette />
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
         {/* Notifications (placeholder for future) */}
         <Button variant="ghost" size="icon" disabled>
