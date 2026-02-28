@@ -364,6 +364,7 @@ export function TasksClient({ initialTasks }: TasksClientProps) {
         task={viewingTask}
         open={!!viewingTask}
         onOpenChange={(open) => !open && setViewingTask(null)}
+        onToggleComplete={handleToggleComplete}
       />
 
       {/* Delete Confirmation Dialog */}

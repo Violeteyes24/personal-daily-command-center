@@ -1,7 +1,7 @@
 "use client";
 
 import { format, isPast, isToday } from "date-fns";
-import { Calendar, Clock, Flag, X } from "lucide-react";
+import { Calendar, Clock, Flag, CheckCircle2, Circle, Loader2 } from "lucide-react";
 
 import {
   Dialog,
@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,8 @@ interface TaskDetailDialogProps {
   task: Task | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onToggleComplete?: (id: string, completed: boolean) => Promise<void>;
+  isToggling?: boolean;
 }
 
 // ==========================================
@@ -43,6 +46,8 @@ export function TaskDetailDialog({
   task,
   open,
   onOpenChange,
+  onToggleComplete,
+  isToggling = false,
 }: TaskDetailDialogProps) {
   if (!task) return null;
 
@@ -66,29 +71,22 @@ export function TaskDetailDialog({
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <div className="flex items-start gap-3">
-            {/* Status indicator */}
-            <div
-              className={cn(
-                "mt-1 h-5 w-5 shrink-0 rounded-full border-2",
-                task.completed
-                  ? "border-green-500 bg-green-500"
-                  : "border-muted-foreground"
-              )}
+            {/* Toggleable status indicator */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mt-0.5 h-6 w-6 shrink-0 rounded-full p-0"
+              onClick={() => onToggleComplete?.(task.id, !task.completed)}
+              disabled={isToggling || !onToggleComplete}
             >
-              {task.completed && (
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="h-full w-full text-white"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+              {isToggling ? (
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              ) : task.completed ? (
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+              ) : (
+                <Circle className="h-5 w-5 text-muted-foreground" />
               )}
-            </div>
+            </Button>
             <DialogTitle
               className={cn(
                 "text-xl leading-tight",

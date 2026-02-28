@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
-import { isToday } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { HabitForm } from "./habit-form";
@@ -40,9 +39,20 @@ export function HabitsClient({ initialHabits }: HabitsClientProps) {
   // ==========================================
   const isTodayCompleted = (habit: Habit): boolean => {
     if (!habit.logs) return false;
-    return habit.logs.some(
-      (log) => log.completed && isToday(new Date(log.date))
-    );
+    // Compare UTC date components from DB with local date to avoid timezone mismatch
+    const now = new Date();
+    const todayYear = now.getFullYear();
+    const todayMonth = now.getMonth();
+    const todayDate = now.getDate();
+    return habit.logs.some((log) => {
+      const d = new Date(log.date);
+      return (
+        log.completed &&
+        d.getUTCFullYear() === todayYear &&
+        d.getUTCMonth() === todayMonth &&
+        d.getUTCDate() === todayDate
+      );
+    });
   };
 
   // ==========================================
@@ -79,12 +89,13 @@ export function HabitsClient({ initialHabits }: HabitsClientProps) {
   };
 
   const handleToggleToday = async (habitId: string, completed: boolean) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Use UTC midnight for today's local date to avoid timezone shift
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 
     const result = await logHabit({
       habitId,
-      date: today,
+      date: todayUTC,
       completed,
     });
 
