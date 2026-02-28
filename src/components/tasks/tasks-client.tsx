@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { TaskForm, TaskList } from "@/components/tasks";
+import { TaskForm, TaskList, TaskDetailDialog } from "@/components/tasks";
 import { ConfirmDialog } from "@/components/shared";
 import { createTask, updateTask, deleteTask } from "@/actions/tasks";
 import type { Task, Priority } from "@/types";
@@ -71,6 +71,9 @@ export function TasksClient({ initialTasks }: TasksClientProps) {
 
   // Delete confirmation state
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Detail dialog state
+  const [viewingTask, setViewingTask] = useState<Task | null>(null);
 
   // ==========================================
   // Filtered Tasks
@@ -295,6 +298,7 @@ export function TasksClient({ initialTasks }: TasksClientProps) {
         onToggleComplete={handleToggleComplete}
         onEdit={handleEdit}
         onDelete={async (id) => setDeleteId(id)}
+        onClick={(task) => setViewingTask(task)}
         onAddNew={() => setIsFormOpen(true)}
         emptyMessage={hasActiveFilters ? "No tasks match filters" : "No tasks yet"}
         emptyDescription={
@@ -311,6 +315,13 @@ export function TasksClient({ initialTasks }: TasksClientProps) {
         onSubmit={editingTask ? handleUpdate : handleCreate}
         defaultValues={editingTask ?? undefined}
         mode={editingTask ? "edit" : "create"}
+      />
+
+      {/* Task Detail Dialog */}
+      <TaskDetailDialog
+        task={viewingTask}
+        open={!!viewingTask}
+        onOpenChange={(open) => !open && setViewingTask(null)}
       />
 
       {/* Delete Confirmation Dialog */}

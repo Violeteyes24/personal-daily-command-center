@@ -36,6 +36,7 @@ interface TaskCardProps {
   onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => Promise<void>;
+  onClick?: (task: Task) => void;
 }
 
 // ==========================================
@@ -79,6 +80,7 @@ export function TaskCard({
   onToggleComplete,
   onEdit,
   onDelete,
+  onClick,
 }: TaskCardProps) {
   const [isToggling, setIsToggling] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -108,10 +110,11 @@ export function TaskCard({
   return (
     <Card
       className={cn(
-        "transition-all hover:shadow-md",
+        "transition-all hover:shadow-md cursor-pointer",
         task.completed && "opacity-60",
         isGrid && "h-full"
       )}
+      onClick={() => onClick?.(task)}
     >
       <CardContent className={cn(
         "flex items-start gap-3 p-4",
@@ -127,7 +130,7 @@ export function TaskCard({
             variant="ghost"
             size="icon"
             className="h-6 w-6 shrink-0 rounded-full"
-            onClick={handleToggle}
+            onClick={(e) => { e.stopPropagation(); handleToggle(); }}
             disabled={isToggling}
           >
             {task.completed ? (
@@ -166,6 +169,7 @@ export function TaskCard({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 shrink-0"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-4 w-4" />
                     <span className="sr-only">Actions</span>

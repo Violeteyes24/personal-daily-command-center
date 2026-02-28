@@ -19,6 +19,7 @@ interface TaskListProps {
   onEdit: (task: Task) => void;
   onDelete: (id: string) => Promise<void>;
   onAddNew: () => void;
+  onClick?: (task: Task) => void;
   emptyMessage?: string;
   emptyDescription?: string;
 }
@@ -33,6 +34,7 @@ export function TaskList({
   onEdit,
   onDelete,
   onAddNew,
+  onClick,
   emptyMessage = "No tasks yet",
   emptyDescription = "Create your first task to get started",
 }: TaskListProps) {
@@ -77,6 +79,7 @@ export function TaskList({
                 onToggleComplete={onToggleComplete}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onClick={onClick}
               />
             ))}
           </div>
@@ -98,6 +101,7 @@ export function TaskList({
                 onToggleComplete={onToggleComplete}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onClick={onClick}
               />
             ))}
           </div>

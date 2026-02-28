@@ -102,10 +102,8 @@ export function MoodClient({ initialEntries, todayMood }: MoodClientProps) {
   const getEnergyLabel = (value: number) =>
     ENERGY_LEVELS.find((e) => e.value === value)?.label ?? "Unknown";
 
-  // Separate today's entry from history
-  const historyEntries = initialEntries.filter(
-    (entry) => entry.id !== todayMood?.id
-  );
+  // Show all entries in history (including today's)
+  const historyEntries = initialEntries;
 
   return (
     <div className="space-y-6">
@@ -224,8 +222,8 @@ export function MoodClient({ initialEntries, todayMood }: MoodClientProps) {
         <CardContent>
           {historyEntries.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-              <p className="text-lg">No past mood entries yet</p>
-              <p className="text-sm">Check in daily to see trends</p>
+              <p className="text-lg">No mood entries yet</p>
+              <p className="text-sm">Check in above to start tracking</p>
             </div>
           ) : (
             <div className="space-y-3">

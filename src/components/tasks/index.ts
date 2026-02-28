@@ -4,4 +4,5 @@
 export { TaskForm } from "./task-form";
 export { TaskCard } from "./task-card";
 export { TaskList } from "./task-list";
+export { TaskDetailDialog } from "./task-detail-dialog";
 export { TasksClient } from "./tasks-client";
