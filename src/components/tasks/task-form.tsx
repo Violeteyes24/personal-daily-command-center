@@ -40,7 +40,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { createTaskSchema, type CreateTaskInput } from "@/lib/validations/task";
-import { TASK_GROUPS } from "@/constants";
+import { TASK_GROUPS, TASK_RECURRENCES } from "@/constants";
 import type { Task, Priority } from "@/types";
 
 // ==========================================
@@ -83,6 +83,7 @@ export function TaskForm({
       priority: "medium",
       group: null,
       dueDate: undefined,
+      recurrence: null,
     },
   });
 
@@ -95,6 +96,7 @@ export function TaskForm({
         priority: defaultValues.priority ?? "medium",
         group: defaultValues.group ?? null,
         dueDate: defaultValues.dueDate ?? undefined,
+        recurrence: defaultValues.recurrence ?? null,
       });
     } else if (open && !defaultValues) {
       form.reset({
@@ -103,6 +105,7 @@ export function TaskForm({
         priority: "medium",
         group: null,
         dueDate: undefined,
+        recurrence: null,
       });
     }
   }, [open, defaultValues, form]);
@@ -206,6 +209,36 @@ export function TaskForm({
                       {TASK_GROUPS.map((g) => (
                         <SelectItem key={g.value} value={g.value}>
                           <span>{g.icon} {g.label}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Recurrence Field */}
+            <FormField
+              control={form.control}
+              name="recurrence"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Repeat (optional)</FormLabel>
+                  <Select
+                    onValueChange={(val) => field.onChange(val === "_none" ? null : val)}
+                    value={field.value ?? "_none"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="One-time task" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="_none">One-time (no repeat)</SelectItem>
+                      {TASK_RECURRENCES.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          <span>{r.icon} {r.label}</span>
                         </SelectItem>
                       ))}
                     </SelectContent>

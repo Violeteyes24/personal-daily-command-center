@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/shared";
+import { MoodTrendChart } from "./mood-trend-chart";
 import { createOrUpdateMood, deleteMood } from "@/actions/mood";
 import { MOOD_LEVELS, ENERGY_LEVELS } from "@/constants/categories";
 import type { MoodEntry } from "@/types";
@@ -213,6 +214,9 @@ export function MoodClient({ initialEntries, todayMood }: MoodClientProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mood Trend Chart */}
+      <MoodTrendChart entries={historyEntries} />
 
       {/* Mood History */}
       <Card>

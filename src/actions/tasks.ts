@@ -130,10 +130,33 @@ export async function toggleTask(id: string): Promise<ActionResponse<Task>> {
       return { success: false, error: "Task not found" };
     }
 
+    const isCompleting = !existing.completed;
+
     const task = await db.task.update({
       where: { id, userId },
-      data: { completed: !existing.completed },
+      data: { completed: isCompleting },
     });
+
+    // If completing a recurring task, create the next occurrence
+    if (isCompleting && existing.recurrence) {
+      const nextDue = getNextRecurrenceDate(
+        existing.dueDate ?? new Date(),
+        existing.recurrence as string
+      );
+
+      await db.task.create({
+        data: {
+          userId,
+          title: existing.title,
+          description: existing.description,
+          priority: existing.priority,
+          group: existing.group,
+          recurrence: existing.recurrence,
+          dueDate: nextDue,
+          completed: false,
+        },
+      });
+    }
 
     revalidatePath("/dashboard");
     revalidatePath("/tasks");
@@ -142,6 +165,38 @@ export async function toggleTask(id: string): Promise<ActionResponse<Task>> {
     console.error("Failed to toggle task:", error);
     return { success: false, error: "Failed to toggle task" };
   }
+}
+
+/**
+ * Calculate the next due date based on recurrence type
+ */
+function getNextRecurrenceDate(current: Date, recurrence: string): Date {
+  const next = new Date(current);
+
+  switch (recurrence) {
+    case "daily":
+      next.setDate(next.getDate() + 1);
+      break;
+    case "weekdays":
+      // Skip to next weekday
+      do {
+        next.setDate(next.getDate() + 1);
+      } while (next.getDay() === 0 || next.getDay() === 6);
+      break;
+    case "weekly":
+      next.setDate(next.getDate() + 7);
+      break;
+    case "biweekly":
+      next.setDate(next.getDate() + 14);
+      break;
+    case "monthly":
+      next.setMonth(next.getMonth() + 1);
+      break;
+    default:
+      next.setDate(next.getDate() + 1);
+  }
+
+  return next;
 }
 
 export async function deleteTask(id: string): Promise<ActionResponse> {

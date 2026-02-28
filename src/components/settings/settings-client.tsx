@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Sun, Moon, Monitor, User, Palette, SlidersHorizontal } from "lucide-react";
+import { Sun, Moon, Monitor, User, Palette, SlidersHorizontal, Download, FileJson, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +51,8 @@ export function SettingsClient({ user }: SettingsClientProps) {
   const [currency, setCurrency] = useState("USD");
   const [defaultTaskGroup, setDefaultTaskGroup] = useState("personal");
   const [weekStart, setWeekStart] = useState("sunday");
+  const [exportScope, setExportScope] = useState("all");
+  const [exporting, setExporting] = useState<string | false>(false);
 
   useEffect(() => {
     setMounted(true);
@@ -84,6 +86,28 @@ export function SettingsClient({ user }: SettingsClientProps) {
   function handleThemeChange(value: string) {
     setTheme(value);
     toast.success(`Theme set to ${value}`);
+  }
+
+  async function handleExport(format: "json" | "csv") {
+    setExporting(format);
+    try {
+      const res = await fetch(`/api/export?format=${format}&scope=${exportScope}`);
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `command-center-export-${new Date().toISOString().split("T")[0]}.${format === "json" ? "json" : "csv"}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Data exported as ${format.toUpperCase()}`);
+    } catch {
+      toast.error("Failed to export data. Please try again.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   const initials = [user.firstName?.[0], user.lastName?.[0]]
@@ -254,6 +278,58 @@ export function SettingsClient({ user }: SettingsClientProps) {
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Data Export */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Download className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <CardTitle>Data Export</CardTitle>
+              <CardDescription>Download your data as JSON or CSV</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="export-scope">What to export</Label>
+            <Select value={exportScope} onValueChange={setExportScope}>
+              <SelectTrigger id="export-scope" className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Everything</SelectItem>
+                <SelectItem value="tasks">Tasks only</SelectItem>
+                <SelectItem value="habits">Habits only</SelectItem>
+                <SelectItem value="expenses">Expenses only</SelectItem>
+                <SelectItem value="notes">Notes only</SelectItem>
+                <SelectItem value="moods">Mood entries only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              disabled={!!exporting}
+              onClick={() => handleExport("json")}
+            >
+              <FileJson className="mr-2 h-4 w-4" />
+              {exporting === "json" ? "Exporting..." : "Export JSON"}
+            </Button>
+            <Button
+              variant="outline"
+              disabled={!!exporting}
+              onClick={() => handleExport("csv")}
+            >
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              {exporting === "csv" ? "Exporting..." : "Export CSV"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Exports include all historical data for the selected scope.
+          </p>
         </CardContent>
       </Card>
 

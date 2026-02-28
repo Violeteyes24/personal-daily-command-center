@@ -44,6 +44,14 @@ export const ENERGY_LEVELS = [
   { value: 5, label: "Supercharged", emoji: "🚀" },
 ] as const;
 
+export const TASK_RECURRENCES = [
+  { value: "daily", label: "Daily", icon: "📅" },
+  { value: "weekdays", label: "Weekdays", icon: "🏢" },
+  { value: "weekly", label: "Weekly", icon: "📆" },
+  { value: "biweekly", label: "Every 2 Weeks", icon: "🔄" },
+  { value: "monthly", label: "Monthly", icon: "🗓️" },
+] as const;
+
 export const DEFAULT_HABIT_ICONS = [
   "💧", // Water
   "🏃", // Exercise

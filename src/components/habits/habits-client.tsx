@@ -6,8 +6,10 @@ import { Plus, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HabitForm } from "./habit-form";
 import { HabitCard } from "./habit-card";
+import { HabitHeatmap } from "./habit-heatmap";
 import { ConfirmDialog, EmptyState } from "@/components/shared";
 import { createHabit, updateHabit, deleteHabit, logHabit } from "@/actions/habits";
 import type { Habit } from "@/types";
@@ -33,6 +35,9 @@ export function HabitsClient({ initialHabits }: HabitsClientProps) {
 
   // Delete confirmation state
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Heatmap selected habit
+  const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
 
   // ==========================================
   // Helpers
@@ -236,6 +241,33 @@ export function HabitsClient({ initialHabits }: HabitsClientProps) {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Heatmap View */}
+      {initialHabits.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Activity</h3>
+            <div className="flex flex-wrap gap-1">
+              {initialHabits.map((habit) => (
+                <Button
+                  key={habit.id}
+                  variant={selectedHabitId === habit.id ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setSelectedHabitId(selectedHabitId === habit.id ? null : habit.id)}
+                >
+                  {habit.icon || "✨"} {habit.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+          {selectedHabitId && (() => {
+            const habit = initialHabits.find(h => h.id === selectedHabitId);
+            if (!habit?.logs) return null;
+            return <HabitHeatmap logs={habit.logs} habitName={habit.name} />;
+          })()}
         </div>
       )}
 

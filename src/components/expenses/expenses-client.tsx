@@ -2,8 +2,9 @@
 
 import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Wallet, X, Filter, PieChart } from "lucide-react";
+import { Plus, Wallet, X, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { format, parse } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { ExpenseForm } from "./expense-form";
 import { ExpenseCard } from "./expense-card";
+import { ExpensePieChart } from "./expense-pie-chart";
 import { ConfirmDialog, EmptyState } from "@/components/shared";
 import { createExpense, updateExpense, deleteExpense } from "@/actions/expenses";
 import { formatCurrency } from "@/lib/utils";
@@ -35,22 +37,15 @@ interface ExpensesClientProps {
     total: number;
     byCategory: { category: string; total: number }[];
   } | null;
+  currentMonth: string; // "YYYY-MM"
 }
 
 type CategoryFilter = "all" | string;
 
 // ==========================================
-// Color palette for pie chart
-// ==========================================
-const CHART_COLORS = [
-  "#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6",
-  "#3b82f6", "#8b5cf6", "#ec4899", "#6366f1", "#06b6d4", "#64748b",
-];
-
-// ==========================================
 // Component
 // ==========================================
-export function ExpensesClient({ initialExpenses, stats }: ExpensesClientProps) {
+export function ExpensesClient({ initialExpenses, stats, currentMonth }: ExpensesClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -73,6 +68,23 @@ export function ExpensesClient({ initialExpenses, stats }: ExpensesClientProps) 
   }, [initialExpenses, categoryFilter]);
 
   const hasActiveFilters = categoryFilter !== "all";
+
+  // ==========================================
+  // Month Navigation
+  // ==========================================
+  const monthDate = parse(currentMonth, "yyyy-MM", new Date());
+  const monthLabel = format(monthDate, "MMMM yyyy");
+
+  const navigateMonth = (direction: -1 | 1) => {
+    const d = new Date(monthDate);
+    d.setMonth(d.getMonth() + direction);
+    const newMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    router.push(`/dashboard/expenses?month=${newMonth}`);
+  };
+
+  const isCurrentMonth =
+    monthDate.getFullYear() === new Date().getFullYear() &&
+    monthDate.getMonth() === new Date().getMonth();
 
   // ==========================================
   // Handlers
@@ -151,6 +163,31 @@ export function ExpensesClient({ initialExpenses, stats }: ExpensesClientProps) 
         </Button>
       </div>
 
+      {/* Month Navigation */}
+      <div className="flex items-center justify-center gap-4">
+        <Button variant="outline" size="icon" onClick={() => navigateMonth(-1)}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <h2 className="text-lg font-semibold min-w-[160px] text-center">{monthLabel}</h2>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigateMonth(1)}
+          disabled={isCurrentMonth}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        {!isCurrentMonth && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/dashboard/expenses")}
+          >
+            Today
+          </Button>
+        )}
+      </div>
+
       {/* Stats Cards */}
       {stats && (
         <div className="grid gap-4 md:grid-cols-2">
@@ -158,7 +195,7 @@ export function ExpensesClient({ initialExpenses, stats }: ExpensesClientProps) 
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                This Month
+                {monthLabel}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -169,56 +206,8 @@ export function ExpensesClient({ initialExpenses, stats }: ExpensesClientProps) 
             </CardContent>
           </Card>
 
-          {/* Category Breakdown - Simple Bar */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <PieChart className="h-4 w-4" />
-                By Category
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {stats.byCategory.length > 0 ? (
-                <div className="space-y-2">
-                  {stats.byCategory
-                    .sort((a, b) => b.total - a.total)
-                    .slice(0, 5)
-                    .map((item, i) => {
-                      const cat = EXPENSE_CATEGORIES.find(
-                        (c) => c.value === item.category
-                      );
-                      const pct =
-                        stats.total > 0
-                          ? (item.total / stats.total) * 100
-                          : 0;
-                      return (
-                        <div key={item.category} className="space-y-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span>
-                              {cat?.icon} {cat?.label || item.category}
-                            </span>
-                            <span className="font-medium">
-                              {formatCurrency(item.total)}
-                            </span>
-                          </div>
-                          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{
-                                width: `${pct}%`,
-                                backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
-                              }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No data yet</p>
-              )}
-            </CardContent>
-          </Card>
+          {/* Pie Chart */}
+          <ExpensePieChart data={stats.byCategory} totalAmount={stats.total} />
         </div>
       )}
 

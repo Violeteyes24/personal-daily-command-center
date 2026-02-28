@@ -18,7 +18,7 @@ export async function getHabits(): Promise<ActionResponse<Habit[]>> {
       include: {
         logs: {
           orderBy: { date: "desc" },
-          take: 30, // Last 30 logs for streak calculation
+          take: 120, // ~4 months for heatmap + streak calculation
         },
       },
       orderBy: { createdAt: "asc" },

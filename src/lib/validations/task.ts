@@ -7,6 +7,7 @@ export const createTaskSchema = z.object({
   priority: z.enum(["low", "medium", "high"]),
   group: z.string().max(50).optional().nullable(),
   dueDate: z.date().optional(),
+  recurrence: z.enum(["daily", "weekdays", "weekly", "biweekly", "monthly"]).optional().nullable(),
 });
 
 export const updateTaskSchema = createTaskSchema.partial().extend({

@@ -10,6 +10,7 @@ import {
   Trash2,
   Circle,
   CheckCircle2,
+  Repeat,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { TASK_GROUPS } from "@/constants";
+import { TASK_GROUPS, TASK_RECURRENCES } from "@/constants";
 import type { Task, Priority } from "@/types";
 
 // ==========================================
@@ -155,6 +156,14 @@ export function TaskCard({
         {groupConfig && (
           <Badge variant="outline" className={cn("shrink-0 text-[10px] px-1.5 py-0 h-5", groupConfig.color)}>
             {groupConfig.icon} {groupConfig.label}
+          </Badge>
+        )}
+
+        {/* Recurrence Badge */}
+        {task.recurrence && (
+          <Badge variant="outline" className="shrink-0 text-[10px] px-1.5 py-0 h-5 text-violet-600 dark:text-violet-400">
+            <Repeat className="h-2.5 w-2.5 mr-0.5" />
+            {TASK_RECURRENCES.find((r) => r.value === task.recurrence)?.label ?? task.recurrence}
           </Badge>
         )}
 
@@ -301,6 +310,13 @@ export function TaskCard({
           {groupConfig && (
             <Badge variant="outline" className={cn("text-xs", groupConfig.color)}>
               {groupConfig.icon} {groupConfig.label}
+            </Badge>
+          )}
+
+          {task.recurrence && (
+            <Badge variant="outline" className="text-xs text-violet-600 dark:text-violet-400">
+              <Repeat className="h-3 w-3 mr-0.5" />
+              {TASK_RECURRENCES.find((r) => r.value === task.recurrence)?.label ?? task.recurrence}
             </Badge>
           )}
 

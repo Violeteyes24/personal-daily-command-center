@@ -1,5 +1,6 @@
 // Task types
 export type Priority = "low" | "medium" | "high";
+export type Recurrence = "daily" | "weekdays" | "weekly" | "biweekly" | "monthly";
 export type TaskGroup = "personal" | "work" | "projects" | "learning" | "health" | "finance" | "errands";
 
 export interface Task {
@@ -11,6 +12,7 @@ export interface Task {
   group: string | null;
   dueDate: Date | null;
   completed: boolean;
+  recurrence: Recurrence | null;
   createdAt: Date;
   updatedAt: Date;
 }
