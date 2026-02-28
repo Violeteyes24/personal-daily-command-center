@@ -40,97 +40,112 @@ export async function getCurrentUser() {
 }
 
 /**
- * Ensure user exists in database (sync from Clerk)
+ * Ensure user exists in database (sync from Clerk).
  * Also migrates data from old user IDs (e.g. after switching from
  * Clerk dev keys to production keys) by matching on email address.
+ *
+ * Key ordering: we must migrate BEFORE creating the new user because
+ * email has a @unique constraint — the old user already occupies that
+ * email, so an upsert/create for the new user would fail.
  */
 export async function syncUser() {
   const clerkUser = await currentUser();
-  
+
   if (!clerkUser) {
     return null;
   }
 
   const email = clerkUser.emailAddresses[0]?.emailAddress ?? "";
+  const newId = clerkUser.id;
 
-  const user = await db.user.upsert({
-    where: { id: clerkUser.id },
-    update: {
-      email,
-      firstName: clerkUser.firstName,
-      lastName: clerkUser.lastName,
-      imageUrl: clerkUser.imageUrl,
-    },
-    create: {
-      id: clerkUser.id,
+  // Fast path: user already exists with current Clerk ID
+  const existingUser = await db.user.findUnique({ where: { id: newId } });
+  if (existingUser) {
+    // Just update profile info
+    return db.user.update({
+      where: { id: newId },
+      data: {
+        email,
+        firstName: clerkUser.firstName,
+        lastName: clerkUser.lastName,
+        imageUrl: clerkUser.imageUrl,
+      },
+    });
+  }
+
+  // ---- Check for old user with same email (dev→prod Clerk switch) ----
+  // The old User record holds the @unique email, so we MUST free it
+  // before we can create the new User record.
+  const oldUser = await db.user.findUnique({ where: { email } });
+
+  if (oldUser && oldUser.id !== newId) {
+    const oldId = oldUser.id;
+
+    try {
+      // 1. Temporarily change old user's email to release the unique constraint
+      await db.user.update({
+        where: { id: oldId },
+        data: { email: `migrated_${oldId}` },
+      });
+
+      // 2. Create the new user (email is now available)
+      await db.user.create({
+        data: {
+          id: newId,
+          email,
+          firstName: clerkUser.firstName,
+          lastName: clerkUser.lastName,
+          imageUrl: clerkUser.imageUrl,
+        },
+      });
+
+      // 3. Transfer all data from old user to new user
+      await db.task.updateMany({
+        where: { userId: oldId },
+        data: { userId: newId },
+      });
+      await db.habit.updateMany({
+        where: { userId: oldId },
+        data: { userId: newId },
+      });
+      await db.expense.updateMany({
+        where: { userId: oldId },
+        data: { userId: newId },
+      });
+      await db.note.updateMany({
+        where: { userId: oldId },
+        data: { userId: newId },
+      });
+      await db.moodEntry.updateMany({
+        where: { userId: oldId },
+        data: { userId: newId },
+      });
+
+      // 4. Delete the old user record (all data has been moved)
+      await db.user.delete({ where: { id: oldId } });
+
+      console.log(`[syncUser] Migrated data from old user ${oldId} → ${newId}`);
+
+      return db.user.findUnique({ where: { id: newId } });
+    } catch (migrationError) {
+      console.error("[syncUser] Data migration error:", migrationError);
+      // If migration failed partway, the new user might already exist
+      const fallback = await db.user.findUnique({ where: { id: newId } });
+      if (fallback) return fallback;
+      return null;
+    }
+  }
+
+  // No old user conflict — just create the new user
+  const user = await db.user.create({
+    data: {
+      id: newId,
       email,
       firstName: clerkUser.firstName,
       lastName: clerkUser.lastName,
       imageUrl: clerkUser.imageUrl,
     },
   });
-
-  // ---- Migrate data from old user IDs (dev→prod Clerk switch) ----
-  // Find other User records with the same email but a different id.
-  // This happens when user previously used Clerk dev keys — those records
-  // have a different userId. We transfer all their data to the current user
-  // so nothing is lost.
-  try {
-    const oldUsers = await db.user.findMany({
-      where: {
-        email,
-        id: { not: clerkUser.id },
-      },
-    });
-
-    for (const oldUser of oldUsers) {
-      const oldId = oldUser.id;
-      const newId = clerkUser.id;
-
-      // Transfer all related records in a transaction.
-      // HabitLogs don't need updating (they reference habitId, not userId).
-      // MoodEntry has a unique constraint on [userId, date] so we handle
-      // conflicts by deleting old-user duplicates first.
-      await db.$transaction(async (tx) => {
-        // 1. Delete mood entries from old user where current user already
-        //    has an entry for the same date (unique constraint protection)
-        const currentMoods = await tx.moodEntry.findMany({
-          where: { userId: newId },
-          select: { date: true },
-        });
-        const currentMoodDates = new Set(
-          currentMoods.map((m) => m.date.toISOString())
-        );
-        const oldMoods = await tx.moodEntry.findMany({
-          where: { userId: oldId },
-          select: { id: true, date: true },
-        });
-        const conflictingMoodIds = oldMoods
-          .filter((m) => currentMoodDates.has(m.date.toISOString()))
-          .map((m) => m.id);
-        if (conflictingMoodIds.length > 0) {
-          await tx.moodEntry.deleteMany({
-            where: { id: { in: conflictingMoodIds } },
-          });
-        }
-
-        // 2. Transfer all data to the new userId
-        await tx.task.updateMany({ where: { userId: oldId }, data: { userId: newId } });
-        await tx.habit.updateMany({ where: { userId: oldId }, data: { userId: newId } });
-        await tx.expense.updateMany({ where: { userId: oldId }, data: { userId: newId } });
-        await tx.note.updateMany({ where: { userId: oldId }, data: { userId: newId } });
-        await tx.moodEntry.updateMany({ where: { userId: oldId }, data: { userId: newId } });
-
-        // 3. Delete the old user record
-        await tx.user.delete({ where: { id: oldId } });
-      });
-
-      console.log(`[syncUser] Migrated data from old user ${oldId} → ${newId}`);
-    }
-  } catch (migrationError) {
-    // Log but don't break the app if migration fails
-    console.error("[syncUser] Data migration error:", migrationError);
-  }
 
   return user;
 }
