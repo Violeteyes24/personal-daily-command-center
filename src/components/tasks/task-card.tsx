@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { TASK_GROUPS } from "@/constants";
 import type { Task, Priority } from "@/types";
 
 // ==========================================
@@ -71,6 +72,11 @@ function getDueDateLabel(date: Date | null): {
   };
 }
 
+function getGroupConfig(group: string | null) {
+  if (!group) return null;
+  return TASK_GROUPS.find((g) => g.value === group) ?? null;
+}
+
 // ==========================================
 // Component
 // ==========================================
@@ -87,6 +93,7 @@ export function TaskCard({
 
   const priorityConfig = PRIORITY_CONFIG[task.priority];
   const dueDateInfo = getDueDateLabel(task.dueDate);
+  const groupConfig = getGroupConfig(task.group);
   const isGrid = layout === "grid";
 
   const handleToggle = async () => {
@@ -107,25 +114,121 @@ export function TaskCard({
     }
   };
 
+  // ==========================================
+  // Compact List Layout
+  // ==========================================
+  if (!isGrid) {
+    return (
+      <div
+        className={cn(
+          "group flex items-center gap-2 rounded-lg border bg-card px-3 py-2 transition-colors hover:bg-accent/50 cursor-pointer",
+          task.completed && "opacity-60"
+        )}
+        onClick={() => onClick?.(task)}
+      >
+        {/* Checkbox */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 shrink-0 rounded-full p-0"
+          onClick={(e) => { e.stopPropagation(); handleToggle(); }}
+          disabled={isToggling}
+        >
+          {task.completed ? (
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+          ) : (
+            <Circle className="h-4 w-4 text-muted-foreground" />
+          )}
+        </Button>
+
+        {/* Title */}
+        <span
+          className={cn(
+            "min-w-0 flex-1 truncate text-sm font-medium",
+            task.completed && "line-through text-muted-foreground"
+          )}
+        >
+          {task.title}
+        </span>
+
+        {/* Group Badge */}
+        {groupConfig && (
+          <Badge variant="outline" className={cn("shrink-0 text-[10px] px-1.5 py-0 h-5", groupConfig.color)}>
+            {groupConfig.icon} {groupConfig.label}
+          </Badge>
+        )}
+
+        {/* Priority Badge */}
+        <Badge variant={priorityConfig.variant} className="shrink-0 text-[10px] px-1.5 py-0 h-5">
+          {priorityConfig.label}
+        </Badge>
+
+        {/* Due Date */}
+        {dueDateInfo.label && (
+          <span
+            className={cn(
+              "shrink-0 flex items-center gap-1 text-[11px]",
+              dueDateInfo.isOverdue && !task.completed
+                ? "text-destructive"
+                : "text-muted-foreground"
+            )}
+          >
+            <Calendar className="h-3 w-3" />
+            {dueDateInfo.label}
+          </span>
+        )}
+
+        {/* Actions */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+              <span className="sr-only">Actions</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleToggle} disabled={isToggling}>
+              <Check className="mr-2 h-4 w-4" />
+              {task.completed ? "Mark Incomplete" : "Mark Complete"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEdit(task)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // Grid Layout (Card)
+  // ==========================================
   return (
     <Card
       className={cn(
-        "transition-all hover:shadow-md cursor-pointer",
-        task.completed && "opacity-60",
-        isGrid && "h-full"
+        "transition-all hover:shadow-md cursor-pointer h-full",
+        task.completed && "opacity-60"
       )}
       onClick={() => onClick?.(task)}
     >
-      <CardContent className={cn(
-        "flex items-start gap-3 p-4",
-        isGrid && "flex-col"
-      )}>
-        {/* Header Row (Checkbox + Actions) */}
-        <div className={cn(
-          "flex items-start gap-3",
-          isGrid && "w-full"
-        )}>
-          {/* Checkbox */}
+      <CardContent className="flex flex-col gap-3 p-4">
+        {/* Header */}
+        <div className="flex items-start gap-3">
           <Button
             variant="ghost"
             size="icon"
@@ -140,29 +243,17 @@ export function TaskCard({
             )}
           </Button>
 
-          {/* Content */}
-          <div className={cn("min-w-0 flex-1", isGrid && "w-full")}>
+          <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p
-                  className={cn(
-                    "font-medium leading-tight",
-                    task.completed && "line-through text-muted-foreground"
-                  )}
-                >
-                  {task.title}
-                </p>
-                {task.description && (
-                  <p className={cn(
-                    "mt-1 text-sm text-muted-foreground",
-                    isGrid ? "line-clamp-3" : "line-clamp-2"
-                  )}>
-                    {task.description}
-                  </p>
+              <p
+                className={cn(
+                  "font-medium leading-tight",
+                  task.completed && "line-through text-muted-foreground"
                 )}
-              </div>
+              >
+                {task.title}
+              </p>
 
-              {/* Actions Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -196,15 +287,23 @@ export function TaskCard({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+
+            {task.description && (
+              <p className="mt-1 text-sm text-muted-foreground line-clamp-3">
+                {task.description}
+              </p>
+            )}
           </div>
         </div>
 
         {/* Meta Info */}
-        <div className={cn(
-          "flex flex-wrap items-center gap-2",
-          !isGrid && "mt-2",
-          isGrid && "w-full mt-auto pt-2"
-        )}>
+        <div className="flex flex-wrap items-center gap-2 mt-auto pt-2">
+          {groupConfig && (
+            <Badge variant="outline" className={cn("text-xs", groupConfig.color)}>
+              {groupConfig.icon} {groupConfig.label}
+            </Badge>
+          )}
+
           <Badge variant={priorityConfig.variant} className="text-xs">
             {priorityConfig.label}
           </Badge>

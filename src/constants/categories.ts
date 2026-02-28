@@ -18,6 +18,16 @@ export const TASK_PRIORITIES = [
   { value: "high", label: "High", color: "bg-red-500" },
 ] as const;
 
+export const TASK_GROUPS = [
+  { value: "personal", label: "Personal", icon: "👤", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  { value: "work", label: "Work", icon: "💼", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
+  { value: "projects", label: "Projects", icon: "🚀", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
+  { value: "learning", label: "Learning", icon: "📚", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  { value: "health", label: "Health", icon: "💪", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
+  { value: "finance", label: "Finance", icon: "💰", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+  { value: "errands", label: "Errands", icon: "🏃", color: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
+] as const;
+
 export const MOOD_LEVELS = [
   { value: 1, label: "Terrible", emoji: "😢" },
   { value: 2, label: "Bad", emoji: "😕" },

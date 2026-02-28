@@ -40,6 +40,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { createTaskSchema, type CreateTaskInput } from "@/lib/validations/task";
+import { TASK_GROUPS } from "@/constants";
 import type { Task, Priority } from "@/types";
 
 // ==========================================
@@ -80,6 +81,7 @@ export function TaskForm({
       title: "",
       description: "",
       priority: "medium",
+      group: null,
       dueDate: undefined,
     },
   });
@@ -91,6 +93,7 @@ export function TaskForm({
         title: defaultValues.title ?? "",
         description: defaultValues.description ?? "",
         priority: defaultValues.priority ?? "medium",
+        group: defaultValues.group ?? null,
         dueDate: defaultValues.dueDate ?? undefined,
       });
     } else if (open && !defaultValues) {
@@ -98,6 +101,7 @@ export function TaskForm({
         title: "",
         description: "",
         priority: "medium",
+        group: null,
         dueDate: undefined,
       });
     }
@@ -176,6 +180,36 @@ export function TaskForm({
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Group Field */}
+            <FormField
+              control={form.control}
+              name="group"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Group (optional)</FormLabel>
+                  <Select
+                    onValueChange={(val) => field.onChange(val === "_none" ? null : val)}
+                    value={field.value ?? "_none"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select group" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="_none">No Group</SelectItem>
+                      {TASK_GROUPS.map((g) => (
+                        <SelectItem key={g.value} value={g.value}>
+                          <span>{g.icon} {g.label}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

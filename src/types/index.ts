@@ -1,5 +1,6 @@
 // Task types
 export type Priority = "low" | "medium" | "high";
+export type TaskGroup = "personal" | "work" | "projects" | "learning" | "health" | "finance" | "errands";
 
 export interface Task {
   id: string;
@@ -7,6 +8,7 @@ export interface Task {
   title: string;
   description: string | null;
   priority: Priority;
+  group: string | null;
   dueDate: Date | null;
   completed: boolean;
   createdAt: Date;

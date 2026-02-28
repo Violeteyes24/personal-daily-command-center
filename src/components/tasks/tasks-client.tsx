@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { TaskForm, TaskList, TaskDetailDialog } from "@/components/tasks";
 import { ConfirmDialog } from "@/components/shared";
 import { createTask, updateTask, deleteTask } from "@/actions/tasks";
+import { TASK_GROUPS } from "@/constants";
 import type { Task, Priority } from "@/types";
 import type { CreateTaskInput, UpdateTaskInput } from "@/lib/validations/task";
 
@@ -31,6 +32,7 @@ interface TasksClientProps {
 type LayoutType = "list" | "grid";
 type PriorityFilter = "all" | Priority;
 type DateFilter = "all" | "today" | "tomorrow" | "this-week" | "overdue" | "no-date";
+type GroupFilter = "all" | string;
 
 // ==========================================
 // Constants
@@ -51,6 +53,14 @@ const DATE_FILTER_OPTIONS: { value: DateFilter; label: string }[] = [
   { value: "no-date", label: "No Due Date" },
 ];
 
+const GROUP_FILTER_OPTIONS: { value: GroupFilter; label: string }[] = [
+  { value: "all", label: "All Groups" },
+  { value: "_none", label: "No Group" },
+  ...TASK_GROUPS.map((g) => ({ value: g.value, label: `${g.icon} ${g.label}` })),
+];
+
+const PAGE_SIZE = 10;
+
 // ==========================================
 // Component
 // ==========================================
@@ -64,6 +74,10 @@ export function TasksClient({ initialTasks }: TasksClientProps) {
   // Filter state
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  const [groupFilter, setGroupFilter] = useState<GroupFilter>("all");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -83,6 +97,12 @@ export function TasksClient({ initialTasks }: TasksClientProps) {
       // Priority filter
       if (priorityFilter !== "all" && task.priority !== priorityFilter) {
         return false;
+      }
+
+      // Group filter
+      if (groupFilter !== "all") {
+        if (groupFilter === "_none" && task.group !== null) return false;
+        if (groupFilter !== "_none" && task.group !== groupFilter) return false;
       }
 
       // Date filter
@@ -111,13 +131,15 @@ export function TasksClient({ initialTasks }: TasksClientProps) {
 
       return true;
     });
-  }, [initialTasks, priorityFilter, dateFilter]);
+  }, [initialTasks, priorityFilter, dateFilter, groupFilter]);
 
-  const hasActiveFilters = priorityFilter !== "all" || dateFilter !== "all";
+  const hasActiveFilters = priorityFilter !== "all" || dateFilter !== "all" || groupFilter !== "all";
 
   const clearFilters = () => {
     setPriorityFilter("all");
     setDateFilter("all");
+    setGroupFilter("all");
+    setCurrentPage(1);
   };
 
   // ==========================================
@@ -213,7 +235,7 @@ export function TasksClient({ initialTasks }: TasksClientProps) {
           {/* Priority Filter */}
           <Select
             value={priorityFilter}
-            onValueChange={(value) => setPriorityFilter(value as PriorityFilter)}
+            onValueChange={(value) => { setPriorityFilter(value as PriorityFilter); setCurrentPage(1); }}
           >
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Priority" />
@@ -227,10 +249,27 @@ export function TasksClient({ initialTasks }: TasksClientProps) {
             </SelectContent>
           </Select>
 
+          {/* Group Filter */}
+          <Select
+            value={groupFilter}
+            onValueChange={(value) => { setGroupFilter(value as GroupFilter); setCurrentPage(1); }}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Group" />
+            </SelectTrigger>
+            <SelectContent>
+              {GROUP_FILTER_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           {/* Date Filter */}
           <Select
             value={dateFilter}
-            onValueChange={(value) => setDateFilter(value as DateFilter)}
+            onValueChange={(value) => { setDateFilter(value as DateFilter); setCurrentPage(1); }}
           >
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Due Date" />
@@ -300,6 +339,9 @@ export function TasksClient({ initialTasks }: TasksClientProps) {
         onDelete={async (id) => setDeleteId(id)}
         onClick={(task) => setViewingTask(task)}
         onAddNew={() => setIsFormOpen(true)}
+        currentPage={currentPage}
+        pageSize={PAGE_SIZE}
+        onPageChange={setCurrentPage}
         emptyMessage={hasActiveFilters ? "No tasks match filters" : "No tasks yet"}
         emptyDescription={
           hasActiveFilters

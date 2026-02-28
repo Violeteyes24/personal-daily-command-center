@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { TASK_GROUPS } from "@/constants";
 import type { Task, Priority } from "@/types";
 
 // ==========================================
@@ -46,6 +47,7 @@ export function TaskDetailDialog({
   if (!task) return null;
 
   const priorityConfig = PRIORITY_CONFIG[task.priority];
+  const groupConfig = task.group ? TASK_GROUPS.find((g) => g.value === task.group) : null;
 
   const dueDateDisplay = task.dueDate
     ? format(new Date(task.dueDate), "EEEE, MMMM d, yyyy")
@@ -105,6 +107,12 @@ export function TaskDetailDialog({
               <Flag className="mr-1 h-3 w-3" />
               {priorityConfig.label} Priority
             </Badge>
+
+            {groupConfig && (
+              <Badge variant="outline" className={cn(groupConfig.color)}>
+                {groupConfig.icon} {groupConfig.label}
+              </Badge>
+            )}
 
             {task.completed && (
               <Badge
