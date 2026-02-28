@@ -8,7 +8,7 @@ export const createExpenseSchema = z.object({
   amount: z.coerce.number().positive("Amount must be positive"),
   category: z.enum(categoryValues),
   note: z.string().max(500, "Note is too long").optional(),
-  date: z.coerce.date().default(() => new Date()),
+  date: z.coerce.date(),
 });
 
 export const updateExpenseSchema = createExpenseSchema.partial().extend({
