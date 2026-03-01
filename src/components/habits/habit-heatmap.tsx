@@ -66,16 +66,16 @@ export function HabitHeatmap({ logs, habitName, weeks = 16 }: HabitHeatmapProps)
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2 sm:pb-3">
         <CardTitle className="text-sm font-medium">Activity Heatmap</CardTitle>
         <p className="text-xs text-muted-foreground">
           {completedCount} completion{completedCount !== 1 ? "s" : ""} in the last {weeks} weeks
         </p>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
+      <CardContent className="pb-3 sm:pb-4">
+        <div className="overflow-x-auto pb-2">
           {/* Month labels */}
-          <div className="flex ml-8 mb-1">
+          <div className="flex ml-7 sm:ml-8 mb-1 min-w-fit">
             {months.map((m, i) => (
               <div
                 key={`${m.label}-${i}`}
@@ -93,13 +93,13 @@ export function HabitHeatmap({ logs, habitName, weeks = 16 }: HabitHeatmapProps)
             ))}
           </div>
 
-          <div className="flex gap-0.5">
+          <div className="flex gap-[2px] sm:gap-0.5 min-w-fit">
             {/* Day labels */}
-            <div className="flex flex-col gap-0.5 mr-1">
+            <div className="flex flex-col gap-[2px] sm:gap-0.5 mr-0.5 sm:mr-1">
               {["", "Mon", "", "Wed", "", "Fri", ""].map((label, i) => (
                 <div
                   key={i}
-                  className="h-[12px] w-6 text-[10px] text-muted-foreground leading-[12px] text-right pr-1"
+                  className="h-[10px] sm:h-[12px] w-5 sm:w-6 text-[8px] sm:text-[10px] text-muted-foreground leading-[10px] sm:leading-[12px] text-right pr-0.5 sm:pr-1"
                 >
                   {label}
                 </div>
@@ -108,12 +108,12 @@ export function HabitHeatmap({ logs, habitName, weeks = 16 }: HabitHeatmapProps)
 
             {/* Grid */}
             {grid.map((week, wi) => (
-              <div key={wi} className="flex flex-col gap-0.5">
+              <div key={wi} className="flex flex-col gap-[2px] sm:gap-0.5">
                 {week.map((day, di) => (
                   <div
                     key={`${wi}-${di}`}
                     className={cn(
-                      "h-[12px] w-[12px] rounded-[2px] transition-colors",
+                      "h-[10px] w-[10px] sm:h-[12px] sm:w-[12px] rounded-[2px] transition-colors",
                       day.future
                         ? "bg-muted/30"
                         : day.completed
@@ -128,11 +128,11 @@ export function HabitHeatmap({ logs, habitName, weeks = 16 }: HabitHeatmapProps)
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-2 mt-3 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1.5 mt-2 sm:mt-3 text-[9px] sm:text-[10px] text-muted-foreground">
             <span>Less</span>
-            <div className="h-[10px] w-[10px] rounded-[2px] bg-muted" />
-            <div className="h-[10px] w-[10px] rounded-[2px] bg-green-500/40 dark:bg-green-400/40" />
-            <div className="h-[10px] w-[10px] rounded-[2px] bg-green-500 dark:bg-green-400" />
+            <div className="h-[8px] w-[8px] sm:h-[10px] sm:w-[10px] rounded-[2px] bg-muted" />
+            <div className="h-[8px] w-[8px] sm:h-[10px] sm:w-[10px] rounded-[2px] bg-green-500/40 dark:bg-green-400/40" />
+            <div className="h-[8px] w-[8px] sm:h-[10px] sm:w-[10px] rounded-[2px] bg-green-500 dark:bg-green-400" />
             <span>More</span>
           </div>
         </div>

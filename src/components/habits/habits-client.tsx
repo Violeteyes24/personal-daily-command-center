@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, TrendingUp } from "lucide-react";
+import { Plus, TrendingUp, LayoutGrid, LayoutList } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HabitForm } from "./habit-form";
 import { HabitCard } from "./habit-card";
 import { HabitHeatmap } from "./habit-heatmap";
+import { HabitStreakHeatmap } from "./habit-streak-heatmap";
 import { ConfirmDialog, EmptyState } from "@/components/shared";
 import { createHabit, updateHabit, deleteHabit, logHabit } from "@/actions/habits";
 import type { Habit } from "@/types";
@@ -18,6 +19,8 @@ import type { CreateHabitInput, UpdateHabitInput } from "@/lib/validations/habit
 // ==========================================
 // Types
 // ==========================================
+type LayoutType = "list" | "grid";
+
 interface HabitsClientProps {
   initialHabits: Habit[];
 }
@@ -35,6 +38,9 @@ export function HabitsClient({ initialHabits }: HabitsClientProps) {
 
   // Delete confirmation state
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Layout state
+  const [layout, setLayout] = useState<LayoutType>("list");
 
   // Heatmap selected habit
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
@@ -149,31 +155,52 @@ export function HabitsClient({ initialHabits }: HabitsClientProps) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Habits</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Habits</h1>
+          <p className="text-sm text-muted-foreground">
             Build streaks and track your daily habits.
           </p>
         </div>
-        <Button onClick={() => setIsFormOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Habit
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Layout Toggle */}
+          <div className="flex items-center gap-1 rounded-lg border p-1">
+            <Button
+              variant={layout === "list" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setLayout("list")}
+              className="h-8 px-2"
+            >
+              <LayoutList className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={layout === "grid" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setLayout("grid")}
+              className="h-8 px-2"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={() => setIsFormOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Habit
+          </Button>
+        </div>
       </div>
 
       {/* Progress Summary */}
       {initialHabits.length > 0 && (
-        <div className="flex items-center gap-4 rounded-lg border bg-card p-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <TrendingUp className="h-6 w-6" />
+        <div className="flex items-center gap-3 sm:gap-4 rounded-lg border bg-card p-3 sm:p-4">
+          <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Today&apos;s Progress</p>
-            <p className="text-2xl font-bold">
+            <p className="text-xs sm:text-sm text-muted-foreground">Today&apos;s Progress</p>
+            <p className="text-xl sm:text-2xl font-bold">
               {completedToday.length}/{initialHabits.length}
             </p>
           </div>
           <div className="ml-auto">
-            <div className="h-3 w-32 overflow-hidden rounded-full bg-muted">
+            <div className="h-2.5 sm:h-3 w-20 sm:w-32 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-green-500 transition-all"
                 style={{
@@ -206,11 +233,12 @@ export function HabitsClient({ initialHabits }: HabitsClientProps) {
               <h3 className="text-sm font-medium text-muted-foreground">
                 To Do ({pendingToday.length})
               </h3>
-              <div className="space-y-2">
+              <div className={layout === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" : "space-y-1.5"}>
                 {pendingToday.map((habit) => (
                   <HabitCard
                     key={habit.id}
                     habit={habit}
+                    layout={layout}
                     isTodayCompleted={false}
                     onToggleToday={handleToggleToday}
                     onEdit={handleEdit}
@@ -227,11 +255,12 @@ export function HabitsClient({ initialHabits }: HabitsClientProps) {
               <h3 className="text-sm font-medium text-muted-foreground">
                 Completed ({completedToday.length})
               </h3>
-              <div className="space-y-2">
+              <div className={layout === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" : "space-y-1.5"}>
                 {completedToday.map((habit) => (
                   <HabitCard
                     key={habit.id}
                     habit={habit}
+                    layout={layout}
                     isTodayCompleted={true}
                     onToggleToday={handleToggleToday}
                     onEdit={handleEdit}
@@ -244,7 +273,12 @@ export function HabitsClient({ initialHabits }: HabitsClientProps) {
         </div>
       )}
 
-      {/* Heatmap View */}
+      {/* GitHub-style Streak Heatmap */}
+      {initialHabits.length > 0 && (
+        <HabitStreakHeatmap habits={initialHabits} />
+      )}
+
+      {/* Per-habit Heatmap View */}
       {initialHabits.length > 0 && (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
