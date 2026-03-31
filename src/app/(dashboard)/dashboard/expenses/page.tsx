@@ -30,6 +30,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   const expenses = expensesResult.success ? expensesResult.data ?? [] : [];
   const stats = statsResult.success ? statsResult.data ?? null : null;
   const budgetGoals = budgetResult.success ? budgetResult.data ?? [] : [];
+  const budgetLoadFailed = !budgetResult.success;
 
   const monthStr = `${targetMonth.getFullYear()}-${String(targetMonth.getMonth() + 1).padStart(2, "0")}`;
 
@@ -39,6 +40,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
       stats={stats}
       currentMonth={monthStr}
       budgetGoals={budgetGoals}
+      budgetLoadFailed={budgetLoadFailed}
     />
   );
 }

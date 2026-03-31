@@ -6,6 +6,15 @@ import type { ActionResponse, BudgetGoal } from "@/types";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
+function toMonthStart(month: Date): Date {
+  return new Date(month.getFullYear(), month.getMonth(), 1);
+}
+
+function revalidateBudgetPaths() {
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/expenses");
+}
+
 export async function getBudgetGoals(
   month: Date
 ): Promise<ActionResponse<BudgetGoal[]>> {
@@ -15,7 +24,7 @@ export async function getBudgetGoals(
       return { success: false, error: "Unauthorized" };
     }
 
-    const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
+    const startOfMonth = toMonthStart(month);
 
     const goals = await db.budgetGoal.findMany({
       where: { userId, month: startOfMonth },
@@ -44,32 +53,77 @@ export async function upsertBudgetGoal(
     }
 
     const { month, category, amount } = validated.data;
-    const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
-    const categoryKey = category ?? "overall";
+    const startOfMonth = toMonthStart(month);
 
-    const goal = await db.budgetGoal.upsert({
-      where: {
-        userId_month_category: {
-          userId,
-          month: startOfMonth,
-          category: categoryKey === "overall" ? null! : categoryKey,
-        },
-      },
-      update: { amount },
-      create: {
-        userId,
-        month: startOfMonth,
-        category: categoryKey === "overall" ? null : categoryKey,
-        amount,
-      },
-    });
+    // Handle overall budgets separately because nullable fields in unique constraints
+    // can still allow duplicates depending on database semantics.
+    const goal =
+      category === null
+        ? await db.$transaction(async (tx) => {
+            const overallGoals = await tx.budgetGoal.findMany({
+              where: {
+                userId,
+                month: startOfMonth,
+                category: null,
+              },
+              orderBy: { createdAt: "asc" },
+            });
 
-    revalidatePath("/dashboard");
-    revalidatePath("/expenses");
+            if (overallGoals.length === 0) {
+              return tx.budgetGoal.create({
+                data: {
+                  userId,
+                  month: startOfMonth,
+                  category: null,
+                  amount,
+                },
+              });
+            }
+
+            const primaryGoal = overallGoals[0];
+            const updatedGoal = await tx.budgetGoal.update({
+              where: { id: primaryGoal.id },
+              data: { amount },
+            });
+
+            if (overallGoals.length > 1) {
+              await tx.budgetGoal.deleteMany({
+                where: {
+                  userId,
+                  month: startOfMonth,
+                  category: null,
+                  id: { not: primaryGoal.id },
+                },
+              });
+            }
+
+            return updatedGoal;
+          })
+        : await db.budgetGoal.upsert({
+            where: {
+              userId_month_category: {
+                userId,
+                month: startOfMonth,
+                category,
+              },
+            },
+            update: { amount },
+            create: {
+              userId,
+              month: startOfMonth,
+              category,
+              amount,
+            },
+          });
+
+    revalidateBudgetPaths();
     return { success: true, data: goal as BudgetGoal };
   } catch (error) {
     console.error("Failed to upsert budget goal:", error);
-    return { success: false, error: "Failed to save budget goal" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to save budget goal",
+    };
   }
 }
 
@@ -80,15 +134,25 @@ export async function deleteBudgetGoal(id: string): Promise<ActionResponse> {
       return { success: false, error: "Unauthorized" };
     }
 
-    await db.budgetGoal.delete({
-      where: { id, userId },
+    const existingGoal = await db.budgetGoal.findUnique({
+      where: { id },
     });
 
-    revalidatePath("/dashboard");
-    revalidatePath("/expenses");
+    if (!existingGoal || existingGoal.userId !== userId) {
+      return { success: false, error: "Budget goal not found" };
+    }
+
+    await db.budgetGoal.delete({
+      where: { id },
+    });
+
+    revalidateBudgetPaths();
     return { success: true };
   } catch (error) {
     console.error("Failed to delete budget goal:", error);
-    return { success: false, error: "Failed to delete budget goal" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete budget goal",
+    };
   }
 }

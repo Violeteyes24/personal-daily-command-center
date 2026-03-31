@@ -25,6 +25,24 @@ export default function ExpensesLoading() {
         ))}
       </div>
 
+      {/* Budget section */}
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-4 w-28" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+              <Skeleton className="h-2 w-full" />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
       {/* Filter */}
       <div className="flex items-center gap-2">
         <Skeleton className="h-10 w-[180px]" />

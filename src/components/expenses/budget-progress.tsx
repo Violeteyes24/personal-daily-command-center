@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import { Pencil, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EXPENSE_CATEGORIES } from "@/constants/categories";
 import { formatCurrency } from "@/lib/utils";
@@ -11,12 +13,20 @@ interface BudgetProgressProps {
   goals: BudgetGoal[];
   spending: { category: string; total: number }[];
   totalSpent: number;
+  onEditGoal?: (goal: BudgetGoal) => void;
+  onDeleteGoal?: (goal: BudgetGoal) => void;
 }
 
-export function BudgetProgress({ goals, spending, totalSpent }: BudgetProgressProps) {
+export function BudgetProgress({
+  goals,
+  spending,
+  totalSpent,
+  onEditGoal,
+  onDeleteGoal,
+}: BudgetProgressProps) {
   const items = useMemo(() => {
     return goals.map((goal) => {
-      const isOverall = !goal.category;
+      const isOverall = goal.category === null || goal.category === "overall";
       const spent = isOverall
         ? totalSpent
         : spending.find((s) => s.category === goal.category)?.total ?? 0;
@@ -29,8 +39,8 @@ export function BudgetProgress({ goals, spending, totalSpent }: BudgetProgressPr
             label: goal.category ?? "Unknown",
           };
 
-      return { ...goal, spent, pct, over, catInfo };
-    });
+      return { ...goal, spent, pct, over, catInfo, isOverall };
+    }).sort((a, b) => Number(b.isOverall) - Number(a.isOverall));
   }, [goals, spending, totalSpent]);
 
   if (items.length === 0) return null;
@@ -45,18 +55,42 @@ export function BudgetProgress({ goals, spending, totalSpent }: BudgetProgressPr
       <CardContent className="space-y-4">
         {items.map((item) => (
           <div key={item.id} className="space-y-1.5">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <div className="font-medium">
                 {item.catInfo.icon} {item.catInfo.label}
-              </span>
-              <span
-                className={cn(
-                  "text-xs font-medium",
-                  item.over ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
+              </div>
+              <div className="flex items-center gap-1">
+                <span
+                  className={cn(
+                    "text-xs font-medium",
+                    item.over ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
+                  )}
+                >
+                  {formatCurrency(item.spent)} / {formatCurrency(item.amount)}
+                </span>
+                {onEditGoal && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => onEditGoal(item)}
+                    aria-label="Edit budget goal"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
                 )}
-              >
-                {formatCurrency(item.spent)} / {formatCurrency(item.amount)}
-              </span>
+                {onDeleteGoal && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => onDeleteGoal(item)}
+                    aria-label="Delete budget goal"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div

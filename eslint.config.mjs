@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated clients and runtimes should not be linted.
+    "src/generated/**",
   ]),
 ]);
 

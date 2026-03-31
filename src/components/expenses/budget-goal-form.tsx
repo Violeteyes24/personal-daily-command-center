@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ interface BudgetGoalFormProps {
   onSubmit: (data: { category: string | null; amount: number }) => Promise<void>;
   defaultCategory?: string | null;
   defaultAmount?: number;
+  mode?: "create" | "edit";
 }
 
 export function BudgetGoalForm({
@@ -37,25 +38,40 @@ export function BudgetGoalForm({
   onSubmit,
   defaultCategory,
   defaultAmount,
+  mode = "create",
 }: BudgetGoalFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [category, setCategory] = useState(defaultCategory ?? "overall");
   const [amount, setAmount] = useState(defaultAmount?.toString() ?? "");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setCategory(defaultCategory ?? "overall");
+    setAmount(defaultAmount?.toString() ?? "");
+    setErrorMessage(null);
+  }, [open, defaultCategory, defaultAmount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const num = parseFloat(amount);
-    if (isNaN(num) || num <= 0) return;
+    if (isNaN(num) || num <= 0) {
+      setErrorMessage("Please enter a valid amount greater than 0.");
+      return;
+    }
 
     setIsSubmitting(true);
+    setErrorMessage(null);
     try {
       await onSubmit({
         category: category === "overall" ? null : category,
         amount: num,
       });
       onOpenChange(false);
+      setAmount("");
+      setCategory("overall");
     } catch {
-      // error handled by parent
+      setErrorMessage("Could not save budget goal. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -65,9 +81,13 @@ export function BudgetGoalForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>Set Budget Goal</DialogTitle>
+          <DialogTitle>
+            {mode === "edit" ? "Edit Budget Goal" : "Set Budget Goal"}
+          </DialogTitle>
           <DialogDescription>
-            Set a monthly spending limit, overall or per category.
+            {mode === "edit"
+              ? "Update your monthly spending limit."
+              : "Set a monthly spending limit, overall or per category."}
           </DialogDescription>
         </DialogHeader>
 
@@ -94,12 +114,15 @@ export function BudgetGoalForm({
             <Input
               type="number"
               step="0.01"
-              min="0"
+              min="0.01"
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               autoFocus
             />
+            {errorMessage && (
+              <p className="text-xs text-destructive">{errorMessage}</p>
+            )}
           </div>
 
           <DialogFooter>
@@ -114,7 +137,7 @@ export function BudgetGoalForm({
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Save Budget
+              {mode === "edit" ? "Save Changes" : "Save Budget"}
             </Button>
           </DialogFooter>
         </form>

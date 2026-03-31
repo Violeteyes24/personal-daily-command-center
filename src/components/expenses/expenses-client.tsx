@@ -22,7 +22,7 @@ import { BudgetGoalForm } from "./budget-goal-form";
 import { BudgetProgress } from "./budget-progress";
 import { ConfirmDialog, EmptyState } from "@/components/shared";
 import { createExpense, updateExpense, deleteExpense } from "@/actions/expenses";
-import { upsertBudgetGoal } from "@/actions/budget";
+import { deleteBudgetGoal, upsertBudgetGoal } from "@/actions/budget";
 import { formatCurrency } from "@/lib/utils";
 import { EXPENSE_CATEGORIES } from "@/constants/categories";
 import type { Expense, BudgetGoal } from "@/types";
@@ -42,6 +42,7 @@ interface ExpensesClientProps {
   } | null;
   currentMonth: string; // "YYYY-MM"
   budgetGoals: BudgetGoal[];
+  budgetLoadFailed?: boolean;
 }
 
 type CategoryFilter = "all" | string;
@@ -49,9 +50,15 @@ type CategoryFilter = "all" | string;
 // ==========================================
 // Component
 // ==========================================
-export function ExpensesClient({ initialExpenses, stats, currentMonth, budgetGoals }: ExpensesClientProps) {
+export function ExpensesClient({
+  initialExpenses,
+  stats,
+  currentMonth,
+  budgetGoals,
+  budgetLoadFailed = false,
+}: ExpensesClientProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   // Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -59,12 +66,14 @@ export function ExpensesClient({ initialExpenses, stats, currentMonth, budgetGoa
 
   // Budget form state
   const [isBudgetFormOpen, setIsBudgetFormOpen] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<BudgetGoal | null>(null);
 
   // Filter state
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
   // Delete confirmation state
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteBudgetId, setDeleteBudgetId] = useState<string | null>(null);
 
   // ==========================================
   // Filtered Expenses
@@ -152,17 +161,58 @@ export function ExpensesClient({ initialExpenses, stats, currentMonth, budgetGoa
   };
 
   const handleSaveBudget = async (data: { category: string | null; amount: number }) => {
+    const isEditing = !!editingBudget;
+    const previousCategory = editingBudget?.category ?? null;
+    const didCategoryChange = isEditing && previousCategory !== data.category;
+
     const result = await upsertBudgetGoal({
       month: monthDate,
       category: data.category,
       amount: data.amount,
     });
+
     if (result.success) {
-      toast.success("Budget goal saved");
+      if (didCategoryChange && editingBudget) {
+        const deleteResult = await deleteBudgetGoal(editingBudget.id);
+        if (!deleteResult.success) {
+          toast.error("Budget updated, but old goal could not be removed. Please delete it manually.");
+        }
+      }
+
+      toast.success(isEditing ? "Budget goal updated" : "Budget goal saved");
+      setEditingBudget(null);
       startTransition(() => router.refresh());
     } else {
       toast.error(result.error ?? "Failed to save budget goal");
       throw new Error(result.error);
+    }
+  };
+
+  const handleEditBudget = (goal: BudgetGoal) => {
+    setEditingBudget(goal);
+    setIsBudgetFormOpen(true);
+  };
+
+  const handleDeleteBudget = async () => {
+    if (!deleteBudgetId) return;
+
+    const result = await deleteBudgetGoal(deleteBudgetId);
+    if (result.success) {
+      toast.success("Budget goal deleted");
+      setDeleteBudgetId(null);
+      if (editingBudget?.id === deleteBudgetId) {
+        setEditingBudget(null);
+      }
+      startTransition(() => router.refresh());
+    } else {
+      toast.error(result.error ?? "Failed to delete budget goal");
+    }
+  };
+
+  const handleBudgetFormClose = (open: boolean) => {
+    setIsBudgetFormOpen(open);
+    if (!open) {
+      setEditingBudget(null);
     }
   };
 
@@ -243,17 +293,36 @@ export function ExpensesClient({ initialExpenses, stats, currentMonth, budgetGoa
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setIsBudgetFormOpen(true)}
+            onClick={() => {
+              setEditingBudget(null);
+              setIsBudgetFormOpen(true);
+            }}
           >
             {budgetGoals.length > 0 ? "Add Goal" : "Set Budget"}
           </Button>
         </div>
-        {budgetGoals.length > 0 && stats && (
+        {budgetGoals.length > 0 ? (
           <BudgetProgress
             goals={budgetGoals}
-            spending={stats.byCategory}
-            totalSpent={stats.total}
+            spending={stats?.byCategory ?? []}
+            totalSpent={stats?.total ?? 0}
+            onEditGoal={handleEditBudget}
+            onDeleteGoal={(goal) => setDeleteBudgetId(goal.id)}
           />
+        ) : (
+          <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+            No budget goals set for {monthLabel}. Add one to track monthly limits.
+          </div>
+        )}
+        {!stats && budgetGoals.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Budget goals are available, but monthly spending stats could not be loaded.
+          </p>
+        )}
+        {budgetLoadFailed && (
+          <p className="text-xs text-destructive">
+            Budget goals could not be loaded for this month. You can still set a new one.
+          </p>
         )}
       </div>
 
@@ -351,11 +420,24 @@ export function ExpensesClient({ initialExpenses, stats, currentMonth, budgetGoa
         variant="destructive"
       />
 
+      <ConfirmDialog
+        open={!!deleteBudgetId}
+        onOpenChange={(open) => !open && setDeleteBudgetId(null)}
+        onConfirm={handleDeleteBudget}
+        title="Delete Budget Goal"
+        description="Are you sure you want to delete this budget goal? This action cannot be undone."
+        confirmText="Delete"
+        variant="destructive"
+      />
+
       {/* Budget Goal Form */}
       <BudgetGoalForm
         open={isBudgetFormOpen}
-        onOpenChange={setIsBudgetFormOpen}
+        onOpenChange={handleBudgetFormClose}
         onSubmit={handleSaveBudget}
+        defaultCategory={editingBudget?.category}
+        defaultAmount={editingBudget?.amount}
+        mode={editingBudget ? "edit" : "create"}
       />
     </div>
   );
