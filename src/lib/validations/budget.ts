@@ -1,24 +1,41 @@
-import { EXPENSE_CATEGORIES } from "@/constants/categories";
+import { EXPENSE_CATEGORIES, OVERALL_BUDGET } from "@/constants/categories";
 import { z } from "zod";
+import { monthStart } from "@/lib/dates";
+import { roundAmount } from "@/lib/money";
 
-const budgetCategoryValues = [
+// Leading literal keeps this a valid non-empty tuple for z.enum.
+const budgetCategoryValues: [string, ...string[]] = [
+  OVERALL_BUDGET,
   ...EXPENSE_CATEGORIES.map((category) => category.value),
-  "overall",
-] as [string, ...string[]];
+];
 
 export const upsertBudgetGoalSchema = z.object({
-  month: z
-    .coerce.date()
-    .transform((month) => new Date(month.getFullYear(), month.getMonth(), 1)),
+  // First of the month as a calendar date, matching the @db.Date column.
+  month: z.coerce.date().transform(monthStart),
+  // Accepts null/undefined for backwards compatibility with existing callers,
+  // but always normalises to the "overall" sentinel that the column stores.
   category: z
     .enum(budgetCategoryValues)
     .optional()
     .nullable()
-    .transform((value) => (value === "overall" || value == null ? null : value)),
-  amount: z
-    .coerce.number()
+    .transform((value) => value ?? OVERALL_BUDGET),
+  amount: z.coerce
+    .number()
     .positive("Budget must be positive")
-    .max(1_000_000, "Budget is too large"),
+    .max(1_000_000, "Budget is too large")
+    .transform(roundAmount),
+});
+
+/** Move an existing goal to a different category (and optionally change amount). */
+export const moveBudgetGoalSchema = z.object({
+  id: z.string().min(1, "Budget goal id is required"),
+  category: z.enum(budgetCategoryValues),
+  amount: z.coerce
+    .number()
+    .positive("Budget must be positive")
+    .max(1_000_000, "Budget is too large")
+    .transform(roundAmount),
 });
 
 export type UpsertBudgetGoalInput = z.infer<typeof upsertBudgetGoalSchema>;
+export type MoveBudgetGoalInput = z.infer<typeof moveBudgetGoalSchema>;

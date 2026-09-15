@@ -50,6 +50,52 @@ export interface Expense {
   category: string;
   note: string | null;
   date: Date;
+  accountId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Account types
+export type AccountKind =
+  | "ewallet"
+  | "digital_bank"
+  | "bank"
+  | "credit_card"
+  | "cash";
+
+export interface Account {
+  id: string;
+  userId: string;
+  name: string;
+  kind: AccountKind;
+  startingBalance: number;
+  emergencyOnly: boolean;
+  archived: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AccountBalance extends Account {
+  /** All-time spending charged to this account. */
+  totalSpent: number;
+  /** startingBalance - totalSpent. Negative on a credit card means money owed. */
+  balance: number;
+}
+
+// Recurring expense types
+export interface RecurringExpense {
+  id: string;
+  userId: string;
+  amount: number;
+  category: string;
+  accountId: string | null;
+  note: string | null;
+  recurrence: Recurrence;
+  startDate: Date;
+  endDate: Date | null;
+  lastRunOn: Date | null;
+  active: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -102,7 +148,8 @@ export interface BudgetGoal {
   id: string;
   userId: string;
   month: Date;
-  category: string | null;
+  /** "overall" for a whole-month budget, otherwise an expense category value. */
+  category: string;
   amount: number;
   createdAt: Date;
   updatedAt: Date;

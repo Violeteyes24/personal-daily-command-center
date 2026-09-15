@@ -45,7 +45,8 @@ import {
   type CreateExpenseInput,
 } from "@/lib/validations/expense";
 import { EXPENSE_CATEGORIES } from "@/constants/categories";
-import type { Expense } from "@/types";
+import type { Account, Expense } from "@/types";
+import { NO_ACCOUNT } from "@/constants/categories";
 
 // ==========================================
 // Types
@@ -56,6 +57,7 @@ interface ExpenseFormProps {
   onSubmit: (data: CreateExpenseInput) => Promise<void>;
   defaultValues?: Partial<Expense>;
   mode?: "create" | "edit";
+  accounts?: Account[];
 }
 
 // ==========================================
@@ -67,33 +69,37 @@ export function ExpenseForm({
   onSubmit,
   defaultValues,
   mode = "create",
+  accounts = [],
 }: ExpenseFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<CreateExpenseInput>({
     resolver: zodResolver(createExpenseSchema) as Resolver<CreateExpenseInput>,
     defaultValues: {
-      amount: 0,
+      amount: undefined,
       category: "food",
       note: "",
       date: new Date(),
+      accountId: null,
     },
   });
 
   useEffect(() => {
     if (open && defaultValues) {
       form.reset({
-        amount: defaultValues.amount ?? 0,
+        amount: defaultValues.amount ?? undefined,
         category: defaultValues.category ?? "food",
         note: defaultValues.note ?? "",
         date: defaultValues.date ? new Date(defaultValues.date) : new Date(),
+        accountId: defaultValues.accountId ?? null,
       });
     } else if (open && !defaultValues) {
       form.reset({
-        amount: 0,
+        amount: undefined,
         category: "food",
         note: "",
         date: new Date(),
+        accountId: null,
       });
     }
   }, [open, defaultValues, form]);
@@ -152,6 +158,7 @@ export function ExpenseForm({
                       placeholder="0.00"
                       autoFocus
                       {...field}
+                      value={field.value ?? ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -166,10 +173,10 @@ export function ExpenseForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  {/* value=, not defaultValue= : Radix keeps its own state for
+                      an uncontrolled Select, so form.reset() when opening the
+                      edit dialog left the previous category showing. */}
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
@@ -190,6 +197,53 @@ export function ExpenseForm({
                 </FormItem>
               )}
             />
+
+            {/* Account */}
+            {accounts.length > 0 && (
+              <FormField
+                control={form.control}
+                name="accountId"
+                render={({ field }) => {
+                  const selected = accounts.find((a) => a.id === field.value);
+                  return (
+                    <FormItem>
+                      <FormLabel>Paid from</FormLabel>
+                      <Select
+                        onValueChange={(value) =>
+                          field.onChange(value === NO_ACCOUNT ? null : value)
+                        }
+                        value={field.value ?? NO_ACCOUNT}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={NO_ACCOUNT}>
+                            Not specified
+                          </SelectItem>
+                          {accounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              <span className="flex items-center gap-2">
+                                <span>{account.name}</span>
+                                {account.emergencyOnly && <span>🚨</span>}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selected?.emergencyOnly && (
+                        <p className="text-xs text-amber-600 dark:text-amber-500">
+                          {selected.name} is marked emergency-only.
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+            )}
 
             {/* Date */}
             <FormField

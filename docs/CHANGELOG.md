@@ -4,6 +4,73 @@ Track of what has been implemented, what's in progress, and what's planned.
 
 ---
 
+## Version 0.5.0 - Expense Tracker Upgrade
+
+### 🐛 Fixed
+
+Date handling was the root cause of three reporting errors. All calendar dates
+now flow through `src/lib/dates.ts`, which pins them to UTC midnight instead of
+treating them as instants.
+
+- **Expenses logged before 08:00 saved to the previous day.** `@db.Date` takes
+  the UTC date part of a local `Date`, so in UTC+8 a 7 AM entry rolled back a
+  day.
+- **The last day of every month was missing from totals.** `new Date(y, m+1, 0)`
+  resolved to the 29th in UTC+8 for September, and pulled in the previous
+  month's last day instead.
+- **Month navigation skipped months.** `parse(month, "yyyy-MM", new Date())`
+  inherited today's day-of-month, so on the 31st stepping to February landed on
+  March 3. Same overflow fixed in monthly recurring tasks.
+- **`revalidatePath("/expenses")` pointed at a route that does not exist.**
+  Mutations never invalidated the page cache. The same dead path was fixed for
+  habits, mood, notes and tasks.
+- **Money stored as `Float`** drifted when summed. Now `Decimal(12,2)`, with
+  centavo-exact arithmetic in `src/lib/money.ts`.
+- **`getTodayExpenses` counted tomorrow's expenses** (`lte: tomorrow`).
+- **Editing an expense showed the wrong category** — the `<Select>` used
+  `defaultValue`, so Radix kept its own stale state across `form.reset()`.
+- **Changing a budget goal's category silently overwrote** an existing goal for
+  the target category, then deleted the old row in a separate call. Now one
+  atomic `moveBudgetGoal` that refuses the collision.
+- **Duplicate "overall" budgets were possible** — nullable `category` in a
+  unique index is not deduplicated by Postgres. `category` is now NOT NULL with
+  an `"overall"` sentinel, so the database enforces it.
+- **Chart tooltips were invisible in dark mode** — `hsl(var(--popover))` against
+  OKLCH theme variables is an invalid colour. Fixed in the expense, report and
+  mood charts.
+- **The pie chart mutated its props** (`data.sort()` on the same array the
+  budget card rendered from) and coloured slices by rank, so a category changed
+  colour month to month. Colours are now keyed to the category.
+- **Filtering by category left the totals unfiltered**, so the headline number
+  and the list below it disagreed.
+
+### ✨ Added
+
+- **Accounts** — attribute each expense to a wallet, bank or card. Seeded with
+  GCash (emergency-only), Maya, Maribank, Tonik, GoTyme, BPI Savings and BPI
+  Credit Card; managed from Settings. Per-account balances, an account filter,
+  and an amber warning when an emergency-only account is used.
+- **Recurring expenses** — templates that materialise on page load, catching up
+  after any gap. Idempotent, transactional, and capped so a dormant series
+  cannot flood the log.
+- **Analytics** — cumulative spend-over-month chart with the budget drawn on it,
+  month-over-month comparison, average per day, and budget pacing ("₱X ahead of
+  pace"). Budget status now appears on the dashboard.
+
+### 🧪 Testing
+
+First tests in the repo: `npm test` runs the date and recurrence logic on
+Node's built-in runner, no framework or build step. 33 assertions pin the three
+confirmed date bugs.
+
+### ⚠️ Migration
+
+`prisma/migrate-expenses-upgrade.sql` must be run **before** `npx prisma db push`.
+It collapses duplicate overall budgets and replaces `NULL` categories with the
+`"overall"` sentinel.
+
+---
+
 ## Version 0.1.0 - Foundation (Current)
 
 **Date**: November 30, 2025

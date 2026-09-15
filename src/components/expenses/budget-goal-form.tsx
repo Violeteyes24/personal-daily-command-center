@@ -21,15 +21,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EXPENSE_CATEGORIES } from "@/constants/categories";
+import { EXPENSE_CATEGORIES, OVERALL_BUDGET } from "@/constants/categories";
 
 interface BudgetGoalFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: { category: string | null; amount: number }) => Promise<void>;
-  defaultCategory?: string | null;
+  onSubmit: (data: { category: string; amount: number }) => Promise<void>;
+  defaultCategory?: string;
   defaultAmount?: number;
   mode?: "create" | "edit";
+  /** Categories that already have a goal this month — shown as disabled. */
+  takenCategories?: string[];
 }
 
 export function BudgetGoalForm({
@@ -39,18 +41,24 @@ export function BudgetGoalForm({
   defaultCategory,
   defaultAmount,
   mode = "create",
+  takenCategories = [],
 }: BudgetGoalFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [category, setCategory] = useState(defaultCategory ?? "overall");
+  const [category, setCategory] = useState(defaultCategory ?? OVERALL_BUDGET);
   const [amount, setAmount] = useState(defaultAmount?.toString() ?? "");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setCategory(defaultCategory ?? "overall");
+    setCategory(defaultCategory ?? OVERALL_BUDGET);
     setAmount(defaultAmount?.toString() ?? "");
     setErrorMessage(null);
   }, [open, defaultCategory, defaultAmount]);
+
+  // A category is unavailable if it already has a goal, except the one this
+  // dialog is currently editing.
+  const isTaken = (value: string) =>
+    value !== defaultCategory && takenCategories.includes(value);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,15 +71,16 @@ export function BudgetGoalForm({
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
-      await onSubmit({
-        category: category === "overall" ? null : category,
-        amount: num,
-      });
+      await onSubmit({ category, amount: num });
       onOpenChange(false);
       setAmount("");
-      setCategory("overall");
-    } catch {
-      setErrorMessage("Could not save budget goal. Please try again.");
+      setCategory(OVERALL_BUDGET);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error && error.message
+          ? error.message
+          : "Could not save budget goal. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -99,9 +108,18 @@ export function BudgetGoalForm({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="overall">💰 Overall Budget</SelectItem>
+                <SelectItem
+                  value={OVERALL_BUDGET}
+                  disabled={isTaken(OVERALL_BUDGET)}
+                >
+                  💰 Overall Budget
+                </SelectItem>
                 {EXPENSE_CATEGORIES.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
+                  <SelectItem
+                    key={cat.value}
+                    value={cat.value}
+                    disabled={isTaken(cat.value)}
+                  >
                     {cat.icon} {cat.label}
                   </SelectItem>
                 ))}

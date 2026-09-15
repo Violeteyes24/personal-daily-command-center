@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { toAmount } from "@/lib/money";
+import { formatCurrency } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   const { userId } = await auth();
@@ -87,7 +89,7 @@ export async function GET(request: NextRequest) {
     ...expenses.map((e) => ({
       id: e.id,
       title: e.note || e.category,
-      subtitle: `$${Number(e.amount).toFixed(2)} · ${e.category}`,
+      subtitle: `${formatCurrency(toAmount(e.amount))} · ${e.category}`,
       type: "expense" as const,
       href: "/dashboard/expenses",
     })),

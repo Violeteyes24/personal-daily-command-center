@@ -19,6 +19,26 @@ export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOpt
 }
 
 /**
+ * Format a @db.Date calendar date for display.
+ *
+ * These dates come back pinned to UTC midnight, so formatting them in local
+ * time renders the previous day anywhere west of UTC. Always read them in UTC.
+ */
+export function formatCalendarDisplay(
+  date: Date | string,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return new Intl.DateTimeFormat("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+    ...options,
+  }).format(d);
+}
+
+/**
  * Format currency (Philippine Peso by default)
  */
 export function formatCurrency(amount: number, currency = "PHP"): string {

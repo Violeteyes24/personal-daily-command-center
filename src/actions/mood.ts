@@ -105,7 +105,7 @@ export async function createOrUpdateMood(
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/mood");
+    revalidatePath("/dashboard/mood");
     return { success: true, data: entry as MoodEntry };
   } catch (error) {
     console.error("Failed to create/update mood:", error);
@@ -135,7 +135,7 @@ export async function updateMood(
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/mood");
+    revalidatePath("/dashboard/mood");
     return { success: true, data: entry as MoodEntry };
   } catch (error) {
     console.error("Failed to update mood:", error);
@@ -155,7 +155,7 @@ export async function deleteMood(id: string): Promise<ActionResponse> {
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/mood");
+    revalidatePath("/dashboard/mood");
     return { success: true };
   } catch (error) {
     console.error("Failed to delete mood:", error);

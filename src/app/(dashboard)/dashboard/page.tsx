@@ -1,22 +1,34 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckSquare, TrendingUp, Wallet, Smile } from "lucide-react";
+import { CheckSquare, TrendingUp, Wallet, Smile, Target } from "lucide-react";
 import Link from "next/link";
 import { getTasks } from "@/actions/tasks";
 import { getHabits } from "@/actions/habits";
-import { getTodayExpenses } from "@/actions/expenses";
+import { getExpenseStats, getTodayExpenses } from "@/actions/expenses";
+import { getBudgetGoals } from "@/actions/budget";
+import { monthRange, monthOf, today as todayDate } from "@/lib/dates";
 import { getTodayMood } from "@/actions/mood";
 import { MOOD_LEVELS, EXPENSE_CATEGORIES } from "@/constants/categories";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
+import { sumBy } from "@/lib/money";
+import { formatCurrency } from "@/lib/utils";
 
 export default async function DashboardPage() {
   // Fetch all data in parallel
-  const [tasksResult, habitsResult, expensesResult, moodResult] =
-    await Promise.all([
-      getTasks(),
-      getHabits(),
-      getTodayExpenses(),
-      getTodayMood(),
-    ]);
+  const [
+    tasksResult,
+    habitsResult,
+    expensesResult,
+    moodResult,
+    statsResult,
+    budgetResult,
+  ] = await Promise.all([
+    getTasks(),
+    getHabits(),
+    getTodayExpenses(),
+    getTodayMood(),
+    getExpenseStats(),
+    getBudgetGoals(todayDate()),
+  ]);
 
   const tasks = tasksResult.success ? (tasksResult.data ?? []) : [];
   const habits = habitsResult.success ? (habitsResult.data ?? []) : [];
@@ -35,7 +47,23 @@ export default async function DashboardPage() {
   );
   const completedToday = todayTasks.filter((t) => t.completed).length;
 
-  const totalExpensesToday = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalExpensesToday = sumBy(todayExpenses, (e) => e.amount);
+
+  // Monthly budget status: spend so far vs the overall goal, paced against how
+  // much of the month has elapsed.
+  const monthStats = statsResult.success ? statsResult.data : null;
+  const overallBudget = budgetResult.success
+    ? (budgetResult.data ?? []).find((g) => g.category === "overall")
+    : undefined;
+
+  const monthSpent = monthStats?.total ?? 0;
+  const budgetAmount = overallBudget?.amount ?? 0;
+  const budgetRemaining = Math.round((budgetAmount - monthSpent) * 100) / 100;
+  const nowDate = todayDate();
+  const { year: nowYear, month: nowMonth } = monthOf(nowDate);
+  const daysThisMonth = monthRange(nowYear, nowMonth).end.getUTCDate();
+  const monthProgress = nowDate.getUTCDate() / daysThisMonth;
+  const expectedSpend = budgetAmount * monthProgress;
 
   // Calculate longest active streak from habits
   const todayStr = format(today, "yyyy-MM-dd");
@@ -71,7 +99,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <StatCard
           title="Tasks Today"
           value={`${todayTasks.length}`}
@@ -90,7 +118,7 @@ export default async function DashboardPage() {
         />
         <StatCard
           title="Spent Today"
-          value={`₱${totalExpensesToday.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`}
+          value={formatCurrency(totalExpensesToday)}
           subtitle={`${todayExpenses.length} transaction${todayExpenses.length !== 1 ? "s" : ""}`}
           icon={<Wallet className="h-5 w-5" />}
         />
@@ -99,6 +127,22 @@ export default async function DashboardPage() {
           value={moodEmoji}
           subtitle={moodLabel}
           icon={<Smile className="h-5 w-5" />}
+        />
+        <StatCard
+          title="Budget Left"
+          value={
+            budgetAmount > 0 ? formatCurrency(budgetRemaining) : formatCurrency(monthSpent)
+          }
+          subtitle={
+            budgetAmount > 0
+              ? budgetRemaining < 0
+                ? `Over by ${formatCurrency(Math.abs(budgetRemaining))}`
+                : monthSpent > expectedSpend
+                  ? `${formatCurrency(monthSpent - expectedSpend)} ahead of pace`
+                  : "On pace this month"
+              : "No budget set — spent this month"
+          }
+          icon={<Target className="h-5 w-5" />}
         />
       </div>
 

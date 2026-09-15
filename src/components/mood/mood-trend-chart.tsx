@@ -119,12 +119,12 @@ export function MoodTrendChart({ entries }: MoodTrendChartProps) {
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="hsl(var(--border))"
+                stroke="var(--border)"
                 opacity={0.5}
               />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                 tickLine={false}
                 axisLine={false}
                 interval="preserveStartEnd"
@@ -132,7 +132,7 @@ export function MoodTrendChart({ entries }: MoodTrendChartProps) {
               <YAxis
                 domain={[1, 5]}
                 ticks={[1, 2, 3, 4, 5]}
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(v: number) =>

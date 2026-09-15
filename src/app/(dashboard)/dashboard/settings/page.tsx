@@ -1,8 +1,14 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { SettingsClient } from "@/components/settings";
+import { ensureDefaultAccounts, getAccounts } from "@/actions/accounts";
 
 export default async function SettingsPage() {
-  const user = await currentUser();
+  await ensureDefaultAccounts();
+
+  const [user, accountsResult] = await Promise.all([
+    currentUser(),
+    getAccounts(),
+  ]);
 
   return (
     <SettingsClient
@@ -12,6 +18,7 @@ export default async function SettingsPage() {
         email: user?.emailAddresses[0]?.emailAddress ?? "",
         imageUrl: user?.imageUrl ?? null,
       }}
+      accounts={accountsResult.success ? (accountsResult.data ?? []) : []}
     />
   );
 }

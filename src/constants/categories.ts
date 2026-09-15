@@ -12,6 +12,38 @@ export const EXPENSE_CATEGORIES = [
   { value: "other", label: "Other", icon: "📦" },
 ] as const;
 
+/**
+ * Sentinel category for a whole-month budget goal.
+ * Stored literally in BudgetGoal.category so the unique index can enforce
+ * one goal per category per month (a NULL would not be deduplicated).
+ */
+export const OVERALL_BUDGET = "overall";
+
+/** Select-item value meaning "no account chosen" (Radix forbids ""). */
+export const NO_ACCOUNT = "none";
+
+export const ACCOUNT_KINDS = [
+  { value: "ewallet", label: "E-wallet", icon: "📱" },
+  { value: "digital_bank", label: "Digital Bank", icon: "🏦" },
+  { value: "bank", label: "Bank", icon: "🏛️" },
+  { value: "credit_card", label: "Credit Card", icon: "💳" },
+  { value: "cash", label: "Cash", icon: "💵" },
+] as const;
+
+/**
+ * Seeded once per user on first visit. Mirrors the accounts actually in use;
+ * everything here is editable afterwards.
+ */
+export const DEFAULT_ACCOUNTS = [
+  { name: "GCash", kind: "ewallet", emergencyOnly: true },
+  { name: "Maya", kind: "ewallet", emergencyOnly: false },
+  { name: "Maribank", kind: "digital_bank", emergencyOnly: false },
+  { name: "Tonik", kind: "digital_bank", emergencyOnly: false },
+  { name: "GoTyme", kind: "digital_bank", emergencyOnly: false },
+  { name: "BPI Savings", kind: "bank", emergencyOnly: false },
+  { name: "BPI Credit Card", kind: "credit_card", emergencyOnly: false },
+] as const;
+
 export const TASK_PRIORITIES = [
   { value: "low", label: "Low", color: "bg-slate-500" },
   { value: "medium", label: "Medium", color: "bg-yellow-500" },

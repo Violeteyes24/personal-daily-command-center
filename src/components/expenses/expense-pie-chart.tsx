@@ -10,6 +10,15 @@ const COLORS = [
   "#3b82f6", "#8b5cf6", "#ec4899", "#6366f1", "#06b6d4", "#64748b",
 ];
 
+/**
+ * Colour by category, not by position in the sorted list — otherwise a
+ * category changes colour from month to month as the ranking shifts.
+ */
+function colorFor(category: string): string {
+  const index = EXPENSE_CATEGORIES.findIndex((c) => c.value === category);
+  return COLORS[(index === -1 ? EXPENSE_CATEGORIES.length : index) % COLORS.length];
+}
+
 interface ExpensePieChartProps {
   data: { category: string; total: number }[];
   totalAmount: number;
@@ -31,7 +40,9 @@ export function ExpensePieChart({ data, totalAmount }: ExpensePieChartProps) {
     );
   }
 
-  const chartData = data
+  // Copy before sorting: `data` is the same array the budget progress card
+  // renders from, and Array.prototype.sort mutates in place.
+  const chartData = [...data]
     .sort((a, b) => b.total - a.total)
     .map((item) => {
       const cat = EXPENSE_CATEGORIES.find((c) => c.value === item.category);
@@ -39,6 +50,7 @@ export function ExpensePieChart({ data, totalAmount }: ExpensePieChartProps) {
         name: cat?.label || item.category,
         value: item.total,
         icon: cat?.icon || "📦",
+        color: colorFor(item.category),
         pct: totalAmount > 0 ? ((item.total / totalAmount) * 100).toFixed(1) : "0",
       };
     });
@@ -63,10 +75,10 @@ export function ExpensePieChart({ data, totalAmount }: ExpensePieChartProps) {
                 paddingAngle={2}
                 dataKey="value"
               >
-                {chartData.map((_, index) => (
+                {chartData.map((entry) => (
                   <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
+                    key={`cell-${entry.name}`}
+                    fill={entry.color}
                     stroke="transparent"
                   />
                 ))}
@@ -74,16 +86,16 @@ export function ExpensePieChart({ data, totalAmount }: ExpensePieChartProps) {
               <Tooltip
                 formatter={(value: number) => formatCurrency(value)}
                 contentStyle={{
-                  backgroundColor: "hsl(var(--popover))",
-                  border: "1px solid hsl(var(--border))",
+                  backgroundColor: "var(--popover)",
+                  border: "1px solid var(--border)",
                   borderRadius: "8px",
-                  color: "hsl(var(--popover-foreground))",
+                  color: "var(--popover-foreground)",
                 }}
               />
               <Legend
                 verticalAlign="bottom"
                 height={36}
-                formatter={(value: string, entry: unknown) => {
+                formatter={(value: string) => {
                   const item = chartData.find((d) => d.name === value);
                   return `${item?.icon || ""} ${value}`;
                 }}
@@ -94,12 +106,12 @@ export function ExpensePieChart({ data, totalAmount }: ExpensePieChartProps) {
 
         {/* Detailed breakdown below chart */}
         <div className="mt-2 space-y-1.5">
-          {chartData.map((item, i) => (
+          {chartData.map((item) => (
             <div key={item.name} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
                 <div
                   className="h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                  style={{ backgroundColor: item.color }}
                 />
                 <span className="text-muted-foreground">
                   {item.icon} {item.name}

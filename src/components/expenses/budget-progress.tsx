@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EXPENSE_CATEGORIES } from "@/constants/categories";
+import { EXPENSE_CATEGORIES, OVERALL_BUDGET } from "@/constants/categories";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { BudgetGoal } from "@/types";
@@ -15,6 +15,45 @@ interface BudgetProgressProps {
   totalSpent: number;
   onEditGoal?: (goal: BudgetGoal) => void;
   onDeleteGoal?: (goal: BudgetGoal) => void;
+  /** Fraction of the month elapsed (0-1). Omitted for past/future months. */
+  monthProgress?: number | null;
+}
+
+/**
+ * Compares spend-to-date against how much of the month has elapsed, so a
+ * budget that is 60% used on day 5 reads as a problem rather than "fine".
+ */
+function PacingNote({
+  spent,
+  budget,
+  monthProgress,
+}: {
+  spent: number;
+  budget: number;
+  monthProgress: number;
+}) {
+  const expected = budget * monthProgress;
+  const difference = Math.round((spent - expected) * 100) / 100;
+
+  // Ignore trivial gaps so the line is not noise.
+  if (Math.abs(difference) < Math.max(budget * 0.02, 1)) {
+    return <p className="text-xs text-muted-foreground">Right on pace</p>;
+  }
+
+  const ahead = difference > 0;
+  return (
+    <p
+      className={cn(
+        "text-xs",
+        ahead
+          ? "text-amber-600 dark:text-amber-500"
+          : "text-emerald-600 dark:text-emerald-400"
+      )}
+    >
+      {formatCurrency(Math.abs(difference))} {ahead ? "ahead of" : "under"} pace
+      ({Math.round(monthProgress * 100)}% of the month gone)
+    </p>
+  );
 }
 
 export function BudgetProgress({
@@ -23,21 +62,22 @@ export function BudgetProgress({
   totalSpent,
   onEditGoal,
   onDeleteGoal,
+  monthProgress = null,
 }: BudgetProgressProps) {
   const items = useMemo(() => {
     return goals.map((goal) => {
-      const isOverall = goal.category === null || goal.category === "overall";
+      const isOverall = goal.category === OVERALL_BUDGET;
       const spent = isOverall
         ? totalSpent
-        : spending.find((s) => s.category === goal.category)?.total ?? 0;
+        : (spending.find((s) => s.category === goal.category)?.total ?? 0);
       const pct = goal.amount > 0 ? Math.min((spent / goal.amount) * 100, 100) : 0;
       const over = spent > goal.amount;
       const catInfo = isOverall
         ? { icon: "💰", label: "Overall" }
-        : EXPENSE_CATEGORIES.find((c) => c.value === goal.category) ?? {
+        : (EXPENSE_CATEGORIES.find((c) => c.value === goal.category) ?? {
             icon: "📦",
-            label: goal.category ?? "Unknown",
-          };
+            label: goal.category,
+          });
 
       return { ...goal, spent, pct, over, catInfo, isOverall };
     }).sort((a, b) => Number(b.isOverall) - Number(a.isOverall));
@@ -109,6 +149,13 @@ export function BudgetProgress({
               <p className="text-xs text-red-600 dark:text-red-400">
                 Over budget by {formatCurrency(item.spent - item.amount)}
               </p>
+            )}
+            {!item.over && item.isOverall && monthProgress !== null && (
+              <PacingNote
+                spent={item.spent}
+                budget={item.amount}
+                monthProgress={monthProgress}
+              />
             )}
           </div>
         ))}

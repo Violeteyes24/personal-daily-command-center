@@ -5,3 +5,5 @@ export * from "./notes";
 export * from "./mood";
 export * from "./budget";
 export * from "./reports";
+export * from "./accounts";
+export * from "./recurring-expenses";

@@ -53,7 +53,7 @@ export async function createHabit(
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/habits");
+    revalidatePath("/dashboard/habits");
     return { success: true, data: habit as Habit };
   } catch (error) {
     console.error("Failed to create habit:", error);
@@ -83,7 +83,7 @@ export async function updateHabit(
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/habits");
+    revalidatePath("/dashboard/habits");
     return { success: true, data: habit as Habit };
   } catch (error) {
     console.error("Failed to update habit:", error);
@@ -131,7 +131,7 @@ export async function logHabit(
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/habits");
+    revalidatePath("/dashboard/habits");
     return { success: true, data: log as HabitLog };
   } catch (error) {
     console.error("Failed to log habit:", error);
@@ -151,7 +151,7 @@ export async function deleteHabit(id: string): Promise<ActionResponse> {
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/habits");
+    revalidatePath("/dashboard/habits");
     return { success: true };
   } catch (error) {
     console.error("Failed to delete habit:", error);

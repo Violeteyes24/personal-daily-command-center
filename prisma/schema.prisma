@@ -30,6 +30,8 @@ model User {
   notes       Note[]
   moods       MoodEntry[]
   budgetGoals BudgetGoal[]
+  accounts    Account[]
+  recurringExpenses RecurringExpense[]
 }
 
 // ==========================================
@@ -120,19 +122,88 @@ model HabitLog {
 model Expense {
   id        String   @id @default(cuid())
   userId    String
-  amount    Float
+  amount    Decimal  @db.Decimal(12, 2) // exact pesos — Float drifts when summed
   category  String
   note      String?
   date      DateTime @db.Date
+  // Which wallet/bank the money left. Nullable so expenses logged before
+  // accounts existed stay valid; deleting an account keeps its expenses.
+  accountId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([date])
   @@index([category])
+  @@index([userId, date])
+  @@index([userId, accountId])
+}
+
+// ==========================================
+// Account Model (wallets, banks, cards)
+// ==========================================
+model Account {
+  id     String      @id @default(cuid())
+  userId String
+  name   String
+  kind   AccountKind @default(ewallet)
+  /// Balance before any tracked expense. For a credit card, enter what you
+  /// already owe as a negative number.
+  startingBalance Decimal @db.Decimal(12, 2) @default(0)
+  /// Marks a wallet you would rather not spend from (e.g. GCash kept for
+  /// emergencies). Surfaced as a warning, never enforced.
+  emergencyOnly   Boolean @default(false)
+  archived        Boolean @default(false)
+  sortOrder       Int     @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses          Expense[]
+  recurringExpenses RecurringExpense[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+enum AccountKind {
+  ewallet
+  digital_bank
+  bank
+  credit_card
+  cash
+}
+
+// ==========================================
+// Recurring Expense Model
+// ==========================================
+model RecurringExpense {
+  id         String     @id @default(cuid())
+  userId     String
+  amount     Decimal    @db.Decimal(12, 2)
+  category   String
+  accountId  String?
+  note       String?
+  recurrence Recurrence
+  startDate  DateTime   @db.Date
+  endDate    DateTime?  @db.Date
+  /// Last date an Expense was materialised for. Null = nothing generated yet.
+  lastRunOn  DateTime?  @db.Date
+  active     Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  // Relations
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, active])
 }
 
 // ==========================================
@@ -161,11 +232,14 @@ model Note {
 // Budget Goal Model
 // ==========================================
 model BudgetGoal {
-  id        String   @id @default(cuid())
-  userId    String
-  month     DateTime @db.Date // first of month
-  category  String?  // null = overall budget
-  amount    Float
+  id     String   @id @default(cuid())
+  userId String
+  month  DateTime @db.Date // first of month
+  // "overall" = whole-month budget, otherwise an EXPENSE_CATEGORIES value.
+  // Deliberately NOT nullable: Postgres treats NULLs as distinct in a unique
+  // index, so a nullable column here allowed duplicate overall budgets.
+  category String   @default("overall")
+  amount   Decimal  @db.Decimal(12, 2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -3,4 +3,7 @@ export { ExpenseCard } from "./expense-card";
 export { ExpensePieChart } from "./expense-pie-chart";
 export { BudgetGoalForm } from "./budget-goal-form";
 export { BudgetProgress } from "./budget-progress";
+export { AccountBalances } from "./account-balances";
+export { SpendingTrend } from "./spending-trend";
+export { RecurringExpenses } from "./recurring-expenses";
 export { ExpensesClient } from "./expenses-client";

@@ -1,6 +1,5 @@
 "use client";
 
-import { format } from "date-fns";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -13,9 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCalendarDisplay, formatCurrency } from "@/lib/utils";
 import { EXPENSE_CATEGORIES } from "@/constants/categories";
-import type { Expense } from "@/types";
+import type { Account, Expense } from "@/types";
 
 // ==========================================
 // Types
@@ -24,12 +23,18 @@ interface ExpenseCardProps {
   expense: Expense;
   onEdit: (expense: Expense) => void;
   onDelete: (id: string) => void;
+  account?: Account;
 }
 
 // ==========================================
 // Component
 // ==========================================
-export function ExpenseCard({ expense, onEdit, onDelete }: ExpenseCardProps) {
+export function ExpenseCard({
+  expense,
+  onEdit,
+  onDelete,
+  account,
+}: ExpenseCardProps) {
   const category = EXPENSE_CATEGORIES.find((c) => c.value === expense.category);
 
   return (
@@ -47,8 +52,21 @@ export function ExpenseCard({ expense, onEdit, onDelete }: ExpenseCardProps) {
               {category?.label || expense.category}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              {format(new Date(expense.date), "MMM d, yyyy")}
+              {formatCalendarDisplay(expense.date)}
             </span>
+            {account && (
+              <span
+                className={cn(
+                  "text-xs",
+                  account.emergencyOnly
+                    ? "text-amber-600 dark:text-amber-500"
+                    : "text-muted-foreground"
+                )}
+              >
+                · {account.name}
+                {account.emergencyOnly && " 🚨"}
+              </span>
+            )}
           </div>
           {expense.note && (
             <p className="mt-1 text-sm text-muted-foreground truncate">

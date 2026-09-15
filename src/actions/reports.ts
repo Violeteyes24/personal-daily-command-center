@@ -2,8 +2,10 @@
 
 import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from "date-fns";
+import { format, startOfWeek, endOfWeek, subWeeks, subMonths } from "date-fns";
 import type { ActionResponse } from "@/types";
+import { formatCalendarDate, monthOf, monthRange } from "@/lib/dates";
+import { subtractAmounts, sumBy, toAmount } from "@/lib/money";
 
 export interface ReportData {
   period: string;
@@ -48,10 +50,15 @@ export async function getReport(
       return { success: false, error: "Unauthorized" };
     }
 
-    const start = type === "weekly" ? startOfWeek(date, { weekStartsOn: 1 }) : startOfMonth(date);
-    const end = type === "weekly" ? endOfWeek(date, { weekStartsOn: 1 }) : endOfMonth(date);
-    const prevStart = type === "weekly" ? startOfWeek(subWeeks(date, 1), { weekStartsOn: 1 }) : startOfMonth(subMonths(date, 1));
-    const prevEnd = type === "weekly" ? endOfWeek(subWeeks(date, 1), { weekStartsOn: 1 }) : endOfMonth(subMonths(date, 1));
+    const monthWindow = (d: Date) => {
+      const { year, month } = monthOf(d);
+      return monthRange(year, month);
+    };
+
+    const start = type === "weekly" ? startOfWeek(date, { weekStartsOn: 1 }) : monthWindow(date).start;
+    const end = type === "weekly" ? endOfWeek(date, { weekStartsOn: 1 }) : monthWindow(date).end;
+    const prevStart = type === "weekly" ? startOfWeek(subWeeks(date, 1), { weekStartsOn: 1 }) : monthWindow(subMonths(date, 1)).start;
+    const prevEnd = type === "weekly" ? endOfWeek(subWeeks(date, 1), { weekStartsOn: 1 }) : monthWindow(subMonths(date, 1)).end;
 
     const periodLabel = type === "weekly"
       ? `${format(start, "MMM d")} – ${format(end, "MMM d, yyyy")}`
@@ -108,18 +115,19 @@ export async function getReport(
       .slice(0, 5);
 
     // Expenses stats
-    const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const previousPeriodSpent = prevExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalSpent = sumBy(expenses, (e) => e.amount);
+    const previousPeriodSpent = sumBy(prevExpenses, (e) => e.amount);
     const spendingChange = previousPeriodSpent > 0
-      ? Math.round(((totalSpent - previousPeriodSpent) / previousPeriodSpent) * 100)
+      ? Math.round((subtractAmounts(totalSpent, previousPeriodSpent) / previousPeriodSpent) * 100)
       : 0;
 
+    // Accumulate in centavos so repeated addition stays exact.
     const categoryMap = new Map<string, number>();
     for (const e of expenses) {
-      categoryMap.set(e.category, (categoryMap.get(e.category) || 0) + e.amount);
+      categoryMap.set(e.category, (categoryMap.get(e.category) || 0) + Math.round(toAmount(e.amount) * 100));
     }
     const topCategories = Array.from(categoryMap.entries())
-      .map(([category, total]) => ({ category, total }))
+      .map(([category, centavos]) => ({ category, total: centavos / 100 }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
 
@@ -141,9 +149,9 @@ export async function getReport(
       dayMap.set(key, d);
     }
     for (const e of expenses) {
-      const key = format(new Date(e.date), "yyyy-MM-dd");
+      const key = formatCalendarDate(e.date);
       const d = dayMap.get(key) || { tasksCompleted: 0, tasksCreated: 0, expenses: 0 };
-      d.expenses += e.amount;
+      d.expenses += toAmount(e.amount);
       dayMap.set(key, d);
     }
 
@@ -152,16 +160,16 @@ export async function getReport(
       .sort((a, b) => a.date.localeCompare(b.date));
 
     const dailyExpenses = expenses.reduce<Record<string, number>>((acc, e) => {
-      const key = format(new Date(e.date), "yyyy-MM-dd");
-      acc[key] = (acc[key] || 0) + e.amount;
+      const key = formatCalendarDate(e.date);
+      acc[key] = (acc[key] || 0) + Math.round(toAmount(e.amount) * 100);
       return acc;
     }, {});
     const dailyExpensesArr = Object.entries(dailyExpenses)
-      .map(([date, total]) => ({ date, total }))
+      .map(([date, centavos]) => ({ date, total: centavos / 100 }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
     const dailyMood = moods.map((m) => ({
-      date: format(new Date(m.date), "yyyy-MM-dd"),
+      date: formatCalendarDate(m.date),
       mood: m.mood,
       energy: m.energy,
     }));

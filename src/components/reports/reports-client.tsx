@@ -84,10 +84,10 @@ export function ReportsClient({ report, type, dateParam }: ReportsClientProps) {
 
   // Custom tooltip styles for dark mode
   const tooltipStyle = {
-    backgroundColor: "hsl(var(--popover))",
-    border: "1px solid hsl(var(--border))",
+    backgroundColor: "var(--popover)",
+    border: "1px solid var(--border)",
     borderRadius: "8px",
-    color: "hsl(var(--foreground))",
+    color: "var(--foreground)",
     fontSize: "12px",
     padding: "8px 12px",
   };
@@ -221,7 +221,7 @@ export function ReportsClient({ report, type, dateParam }: ReportsClientProps) {
                   />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={30} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="created" fill="hsl(var(--muted-foreground))" radius={[2, 2, 0, 0]} name="Created" />
+                  <Bar dataKey="created" fill="var(--muted-foreground)" radius={[2, 2, 0, 0]} name="Created" />
                   <Bar dataKey="completed" fill="hsl(142, 76%, 36%)" radius={[2, 2, 0, 0]} name="Completed" />
                 </BarChart>
               </ResponsiveContainer>

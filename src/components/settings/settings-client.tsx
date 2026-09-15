@@ -19,6 +19,8 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { TASK_GROUPS } from "@/constants";
+import { AccountsManager } from "./accounts-manager";
+import type { Account } from "@/types";
 
 interface SettingsClientProps {
   user: {
@@ -28,9 +30,11 @@ interface SettingsClientProps {
     imageUrl: string | null;
     createdAt?: string;
   };
+  accounts: Account[];
 }
 
 const CURRENCIES = [
+  { value: "PHP", label: "PHP (₱)", symbol: "₱" },
   { value: "USD", label: "USD ($)", symbol: "$" },
   { value: "EUR", label: "EUR (€)", symbol: "€" },
   { value: "GBP", label: "GBP (£)", symbol: "£" },
@@ -45,7 +49,7 @@ const WEEK_STARTS = [
   { value: "monday", label: "Monday" },
 ] as const;
 
-export function SettingsClient({ user }: SettingsClientProps) {
+export function SettingsClient({ user, accounts }: SettingsClientProps) {
   const { setTheme, theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [currency, setCurrency] = useState("USD");
@@ -381,6 +385,9 @@ export function SettingsClient({ user }: SettingsClientProps) {
           </p>
         </CardContent>
       </Card>
+
+      {/* Accounts */}
+      <AccountsManager accounts={accounts} />
 
       {/* Data & Privacy */}
       <Card>

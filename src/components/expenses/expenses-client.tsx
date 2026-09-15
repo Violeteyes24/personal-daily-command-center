@@ -4,7 +4,6 @@ import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Wallet, X, Filter, ChevronLeft, ChevronRight, Target } from "lucide-react";
 import { toast } from "sonner";
-import { format, parse } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,14 +17,36 @@ import {
 import { ExpenseForm } from "./expense-form";
 import { ExpenseCard } from "./expense-card";
 import { ExpensePieChart } from "./expense-pie-chart";
+import { AccountBalances } from "./account-balances";
+import { SpendingTrend } from "./spending-trend";
+import { RecurringExpenses } from "./recurring-expenses";
 import { BudgetGoalForm } from "./budget-goal-form";
 import { BudgetProgress } from "./budget-progress";
 import { ConfirmDialog, EmptyState } from "@/components/shared";
 import { createExpense, updateExpense, deleteExpense } from "@/actions/expenses";
-import { deleteBudgetGoal, upsertBudgetGoal } from "@/actions/budget";
-import { formatCurrency } from "@/lib/utils";
+import type { ExpenseStats } from "@/actions/expenses";
+import {
+  deleteBudgetGoal,
+  moveBudgetGoal,
+  upsertBudgetGoal,
+} from "@/actions/budget";
+import { cn, formatCurrency } from "@/lib/utils";
+import { sumBy } from "@/lib/money";
+import {
+  addMonthsClamped,
+  formatMonthParam,
+  monthOf,
+  monthRange,
+  parseMonthParam,
+  today,
+} from "@/lib/dates";
 import { EXPENSE_CATEGORIES } from "@/constants/categories";
-import type { Expense, BudgetGoal } from "@/types";
+import type {
+  AccountBalance,
+  BudgetGoal,
+  Expense,
+  RecurringExpense,
+} from "@/types";
 import type {
   CreateExpenseInput,
   UpdateExpenseInput,
@@ -36,13 +57,14 @@ import type {
 // ==========================================
 interface ExpensesClientProps {
   initialExpenses: Expense[];
-  stats: {
-    total: number;
-    byCategory: { category: string; total: number }[];
-  } | null;
+  stats: ExpenseStats | null;
   currentMonth: string; // "YYYY-MM"
   budgetGoals: BudgetGoal[];
   budgetLoadFailed?: boolean;
+  accountBalances: AccountBalance[];
+  totalAvailable: number;
+  totalOwed: number;
+  recurring: RecurringExpense[];
 }
 
 type CategoryFilter = "all" | string;
@@ -56,6 +78,10 @@ export function ExpensesClient({
   currentMonth,
   budgetGoals,
   budgetLoadFailed = false,
+  accountBalances,
+  totalAvailable,
+  totalOwed,
+  recurring,
 }: ExpensesClientProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -70,6 +96,7 @@ export function ExpensesClient({
 
   // Filter state
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [accountFilter, setAccountFilter] = useState<string>("all");
 
   // Delete confirmation state
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -79,28 +106,102 @@ export function ExpensesClient({
   // Filtered Expenses
   // ==========================================
   const filteredExpenses = useMemo(() => {
-    if (categoryFilter === "all") return initialExpenses;
-    return initialExpenses.filter((e) => e.category === categoryFilter);
-  }, [initialExpenses, categoryFilter]);
+    return initialExpenses.filter(
+      (e) =>
+        (categoryFilter === "all" || e.category === categoryFilter) &&
+        (accountFilter === "all" || e.accountId === accountFilter)
+    );
+  }, [initialExpenses, categoryFilter, accountFilter]);
 
-  const hasActiveFilters = categoryFilter !== "all";
+  const hasActiveFilters = categoryFilter !== "all" || accountFilter !== "all";
+
+  // The headline total, the pie chart and the transaction count all describe
+  // whatever is currently on screen. Previously they stayed on whole-month
+  // figures while the list below them was filtered.
+  const visibleTotal = useMemo(
+    () =>
+      hasActiveFilters
+        ? sumBy(filteredExpenses, (e) => e.amount)
+        : (stats?.total ?? 0),
+    [hasActiveFilters, filteredExpenses, stats]
+  );
+
+  const visibleByCategory = useMemo(() => {
+    if (!hasActiveFilters) return stats?.byCategory ?? [];
+    // Recompute from the visible rows so an account filter is reflected too.
+    const centavos = new Map<string, number>();
+    for (const expense of filteredExpenses) {
+      centavos.set(
+        expense.category,
+        (centavos.get(expense.category) ?? 0) + Math.round(expense.amount * 100)
+      );
+    }
+    return Array.from(centavos.entries())
+      .map(([category, value]) => ({ category, total: value / 100 }))
+      .sort((a, b) => b.total - a.total);
+  }, [hasActiveFilters, stats, filteredExpenses]);
+
+  // This month's spend per account, for the balances card.
+  const monthlySpendByAccount = useMemo(() => {
+    const centavos = new Map<string, number>();
+    for (const expense of initialExpenses) {
+      if (!expense.accountId) continue;
+      centavos.set(
+        expense.accountId,
+        (centavos.get(expense.accountId) ?? 0) + Math.round(expense.amount * 100)
+      );
+    }
+    return Array.from(centavos.entries()).map(([accountId, value]) => ({
+      accountId,
+      total: value / 100,
+    }));
+  }, [initialExpenses]);
+
+  const emergencyUsed = useMemo(() => {
+    const spend = new Map(monthlySpendByAccount.map((s) => [s.accountId, s.total]));
+    return accountBalances
+      .filter((a) => a.emergencyOnly && (spend.get(a.id) ?? 0) > 0)
+      .map((a) => ({ name: a.name, total: spend.get(a.id) ?? 0 }));
+  }, [accountBalances, monthlySpendByAccount]);
+
+  const overallBudget = useMemo(
+    () => budgetGoals.find((g) => g.category === "overall")?.amount ?? null,
+    [budgetGoals]
+  );
 
   // ==========================================
   // Month Navigation
   // ==========================================
-  const monthDate = parse(currentMonth, "yyyy-MM", new Date());
-  const monthLabel = format(monthDate, "MMMM yyyy");
+  // parseMonthParam never consults today's date, so the label cannot drift
+  // onto another month when the app is opened on the 29th-31st.
+  const { year, month } = parseMonthParam(currentMonth) ?? monthOf(today());
+  const monthDate = monthRange(year, month).start;
+  const monthLabel = new Intl.DateTimeFormat("en-PH", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(monthDate);
 
   const navigateMonth = (direction: -1 | 1) => {
-    const d = new Date(monthDate);
-    d.setMonth(d.getMonth() + direction);
-    const newMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    router.push(`/dashboard/expenses?month=${newMonth}`);
+    // addMonthsClamped, not setMonth: Jan 31 + 1 month must be February.
+    const target = monthOf(addMonthsClamped(monthDate, direction));
+    router.push(
+      `/dashboard/expenses?month=${formatMonthParam(target.year, target.month)}`
+    );
   };
 
+  const currentMonthInfo = monthOf(today());
   const isCurrentMonth =
-    monthDate.getFullYear() === new Date().getFullYear() &&
-    monthDate.getMonth() === new Date().getMonth();
+    year === currentMonthInfo.year && month === currentMonthInfo.month;
+
+  // Only meaningful for the month in progress: a finished month is 100% gone
+  // and a future month has not started.
+  const monthProgress = useMemo(() => {
+    if (!isCurrentMonth) return null;
+    const { end } = monthRange(year, month);
+    const daysInMonth = end.getUTCDate();
+    return Math.min(today().getUTCDate() / daysInMonth, 1);
+  }, [isCurrentMonth, year, month]);
 
   // ==========================================
   // Handlers
@@ -160,31 +261,32 @@ export function ExpensesClient({
     }
   };
 
-  const handleSaveBudget = async (data: { category: string | null; amount: number }) => {
+  const handleSaveBudget = async (data: { category: string; amount: number }) => {
     const isEditing = !!editingBudget;
-    const previousCategory = editingBudget?.category ?? null;
-    const didCategoryChange = isEditing && previousCategory !== data.category;
 
-    const result = await upsertBudgetGoal({
-      month: monthDate,
-      category: data.category,
-      amount: data.amount,
-    });
+    // Editing is a single atomic server call. The old flow upserted the new
+    // category and then deleted the old row, which silently overwrote an
+    // existing goal and could leave two goals behind if the delete failed.
+    const result = isEditing
+      ? await moveBudgetGoal({
+          id: editingBudget.id,
+          category: data.category,
+          amount: data.amount,
+        })
+      : await upsertBudgetGoal({
+          month: monthDate,
+          category: data.category,
+          amount: data.amount,
+        });
 
     if (result.success) {
-      if (didCategoryChange && editingBudget) {
-        const deleteResult = await deleteBudgetGoal(editingBudget.id);
-        if (!deleteResult.success) {
-          toast.error("Budget updated, but old goal could not be removed. Please delete it manually.");
-        }
-      }
-
       toast.success(isEditing ? "Budget goal updated" : "Budget goal saved");
       setEditingBudget(null);
       startTransition(() => router.refresh());
     } else {
-      toast.error(result.error ?? "Failed to save budget goal");
-      throw new Error(result.error);
+      const message = result.error ?? "Failed to save budget goal";
+      toast.error(message);
+      throw new Error(message);
     }
   };
 
@@ -271,17 +373,56 @@ export function ExpensesClient({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{formatCurrency(stats.total)}</p>
+              <p className="text-3xl font-bold">{formatCurrency(visibleTotal)}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {initialExpenses.length} transaction{initialExpenses.length !== 1 ? "s" : ""}
+                {filteredExpenses.length} transaction
+                {filteredExpenses.length !== 1 ? "s" : ""}
+                {hasActiveFilters && " (filtered)"}
               </p>
+              {!hasActiveFilters && stats.spendingChange !== null && (
+                <p
+                  className={cn(
+                    "text-xs mt-1",
+                    stats.spendingChange > 0
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-emerald-600 dark:text-emerald-400"
+                  )}
+                >
+                  {stats.spendingChange > 0 ? "▲" : "▼"}{" "}
+                  {Math.abs(stats.spendingChange)}% vs last month (
+                  {formatCurrency(stats.previousMonthTotal)})
+                </p>
+              )}
+              {!hasActiveFilters && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formatCurrency(stats.averagePerDay)} average per day
+                </p>
+              )}
             </CardContent>
           </Card>
 
           {/* Pie Chart */}
-          <ExpensePieChart data={stats.byCategory} totalAmount={stats.total} />
+          <ExpensePieChart data={visibleByCategory} totalAmount={visibleTotal} />
         </div>
       )}
+
+      {/* Trend + balances */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {stats && (
+          <SpendingTrend
+            dailyTotals={stats.dailyTotals}
+            month={currentMonth}
+            budget={overallBudget}
+          />
+        )}
+        <AccountBalances
+          balances={accountBalances}
+          totalAvailable={totalAvailable}
+          totalOwed={totalOwed}
+          monthlySpend={monthlySpendByAccount}
+          emergencyUsed={emergencyUsed}
+        />
+      </div>
 
       {/* Budget Goals */}
       <div className="space-y-3">
@@ -289,6 +430,9 @@ export function ExpensesClient({
           <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
             <Target className="h-4 w-4" />
             Budget Goals
+            {hasActiveFilters && (
+              <span className="font-normal">(whole month)</span>
+            )}
           </h3>
           <Button
             variant="outline"
@@ -308,6 +452,7 @@ export function ExpensesClient({
             totalSpent={stats?.total ?? 0}
             onEditGoal={handleEditBudget}
             onDeleteGoal={(goal) => setDeleteBudgetId(goal.id)}
+            monthProgress={monthProgress}
           />
         ) : (
           <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
@@ -345,11 +490,31 @@ export function ExpensesClient({
           </SelectContent>
         </Select>
 
+        {accountBalances.length > 0 && (
+          <Select value={accountFilter} onValueChange={setAccountFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Account" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Accounts</SelectItem>
+              {accountBalances.map((account) => (
+                <SelectItem key={account.id} value={account.id}>
+                  {account.name}
+                  {account.emergencyOnly ? " 🚨" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         {hasActiveFilters && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setCategoryFilter("all")}
+            onClick={() => {
+              setCategoryFilter("all");
+              setAccountFilter("all");
+            }}
             className="h-9"
           >
             <X className="mr-1 h-4 w-4" />
@@ -367,6 +532,9 @@ export function ExpensesClient({
           </span>
         </div>
       )}
+
+      {/* Recurring */}
+      <RecurringExpenses recurring={recurring} accounts={accountBalances} />
 
       {/* Expense List */}
       {filteredExpenses.length === 0 ? (
@@ -395,6 +563,7 @@ export function ExpensesClient({
               expense={expense}
               onEdit={handleEdit}
               onDelete={(id) => setDeleteId(id)}
+              account={accountBalances.find((a) => a.id === expense.accountId)}
             />
           ))}
         </div>
@@ -407,6 +576,7 @@ export function ExpensesClient({
         onSubmit={editingExpense ? handleUpdate : handleCreate}
         defaultValues={editingExpense ?? undefined}
         mode={editingExpense ? "edit" : "create"}
+        accounts={accountBalances}
       />
 
       {/* Delete Confirmation */}
@@ -438,6 +608,7 @@ export function ExpensesClient({
         defaultCategory={editingBudget?.category}
         defaultAmount={editingBudget?.amount}
         mode={editingBudget ? "edit" : "create"}
+        takenCategories={budgetGoals.map((g) => g.category)}
       />
     </div>
   );

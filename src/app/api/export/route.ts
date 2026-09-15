@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { toAmount } from "@/lib/money";
+import { formatCalendarDate } from "@/lib/dates";
 
 export async function GET(request: NextRequest) {
   const { userId } = await auth();
@@ -97,10 +99,10 @@ export async function GET(request: NextRequest) {
         lines.push(
           [
             e.id,
-            e.amount,
+            toAmount(e.amount).toFixed(2),
             e.category,
             csvEscape(e.note ?? ""),
-            e.date.toISOString(),
+            formatCalendarDate(e.date),
             e.createdAt.toISOString(),
           ].join(",")
         );
@@ -153,8 +155,20 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // JSON format
-  const data = { exportedAt: new Date().toISOString(), tasks, habits, expenses, notes, moods };
+  // JSON format. Prisma Decimal serialises as a string, so convert money to
+  // numbers and @db.Date columns to plain YYYY-MM-DD before stringifying.
+  const data = {
+    exportedAt: new Date().toISOString(),
+    tasks,
+    habits,
+    expenses: expenses.map((e) => ({
+      ...e,
+      amount: toAmount(e.amount),
+      date: formatCalendarDate(e.date),
+    })),
+    notes,
+    moods,
+  };
   const json = JSON.stringify(data, null, 2);
 
   return new NextResponse(json, {

@@ -69,7 +69,7 @@ export async function createNote(
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/notes");
+    revalidatePath("/dashboard/notes");
     return { success: true, data: note as Note };
   } catch (error) {
     console.error("Failed to create note:", error);
@@ -99,7 +99,7 @@ export async function updateNote(
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/notes");
+    revalidatePath("/dashboard/notes");
     return { success: true, data: note as Note };
   } catch (error) {
     console.error("Failed to update note:", error);
@@ -128,7 +128,7 @@ export async function toggleNotePin(id: string): Promise<ActionResponse<Note>> {
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/notes");
+    revalidatePath("/dashboard/notes");
     return { success: true, data: note as Note };
   } catch (error) {
     console.error("Failed to toggle note pin:", error);
@@ -148,7 +148,7 @@ export async function deleteNote(id: string): Promise<ActionResponse> {
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/notes");
+    revalidatePath("/dashboard/notes");
     return { success: true };
   } catch (error) {
     console.error("Failed to delete note:", error);

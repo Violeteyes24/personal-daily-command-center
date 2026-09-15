@@ -5,6 +5,7 @@ import { createTaskSchema, updateTaskSchema } from "@/lib/validations/task";
 import type { ActionResponse, Task } from "@/types";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { addMonthsClamped } from "@/lib/dates";
 
 export async function getTasks(): Promise<ActionResponse<Task[]>> {
   try {
@@ -77,7 +78,7 @@ export async function createTask(
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/tasks");
+    revalidatePath("/dashboard/tasks");
     return { success: true, data: task as Task };
   } catch (error) {
     console.error("Failed to create task:", error);
@@ -107,7 +108,7 @@ export async function updateTask(
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/tasks");
+    revalidatePath("/dashboard/tasks");
     return { success: true, data: task as Task };
   } catch (error) {
     console.error("Failed to update task:", error);
@@ -159,7 +160,7 @@ export async function toggleTask(id: string): Promise<ActionResponse<Task>> {
     }
 
     revalidatePath("/dashboard");
-    revalidatePath("/tasks");
+    revalidatePath("/dashboard/tasks");
     return { success: true, data: task as Task };
   } catch (error) {
     console.error("Failed to toggle task:", error);
@@ -190,8 +191,8 @@ function getNextRecurrenceDate(current: Date, recurrence: string): Date {
       next.setDate(next.getDate() + 14);
       break;
     case "monthly":
-      next.setMonth(next.getMonth() + 1);
-      break;
+      // setMonth overflows (Jan 31 -> Mar 3); clamp to the month's last day.
+      return addMonthsClamped(next, 1);
     default:
       next.setDate(next.getDate() + 1);
   }
@@ -211,7 +212,7 @@ export async function deleteTask(id: string): Promise<ActionResponse> {
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/tasks");
+    revalidatePath("/dashboard/tasks");
     return { success: true };
   } catch (error) {
     console.error("Failed to delete task:", error);
