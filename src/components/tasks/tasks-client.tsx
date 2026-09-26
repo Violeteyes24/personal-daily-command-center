@@ -218,12 +218,12 @@ export function TasksClient({ initialTasks }: TasksClientProps) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Tasks</h1>
+          <h1 className="font-display text-4xl tracking-tight">Tasks</h1>
           <p className="text-muted-foreground">
             Manage your tasks and stay productive.
           </p>
         </div>
-        <Button onClick={() => setIsFormOpen(true)}>
+        <Button variant="cta" onClick={() => setIsFormOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Task
         </Button>

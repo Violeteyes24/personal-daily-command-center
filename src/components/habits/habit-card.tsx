@@ -115,7 +115,7 @@ export function HabitCard({
 
         {/* Reminder */}
         {habit.reminderEnabled && habit.reminderTime && (
-          <span className="shrink-0 flex items-center gap-0.5 text-[11px] text-blue-500 hidden sm:flex">
+          <span className="shrink-0 flex items-center gap-0.5 text-[11px] text-primary hidden sm:flex">
             <Bell className="h-3 w-3" />
             {habit.reminderTime}
           </span>
@@ -225,7 +225,7 @@ export function HabitCard({
             </span>
           )}
           {habit.reminderEnabled && habit.reminderTime && (
-            <span className="flex items-center gap-0.5 text-[11px] text-blue-500">
+            <span className="flex items-center gap-0.5 text-[11px] text-primary">
               <Bell className="h-3 w-3" />
               {habit.reminderTime}
             </span>

@@ -189,12 +189,12 @@ export function NotesClient({ initialNotes }: NotesClientProps) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Notes</h1>
+          <h1 className="font-display text-4xl tracking-tight">Notes</h1>
           <p className="text-muted-foreground">
             Capture your thoughts and ideas.
           </p>
         </div>
-        <Button onClick={() => setIsFormOpen(true)}>
+        <Button variant="cta" onClick={() => setIsFormOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Note
         </Button>

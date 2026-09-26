@@ -72,8 +72,8 @@ export function SpendingTrend({ dailyTotals, month, budget }: SpendingTrendProps
             <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="spendFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
@@ -118,7 +118,7 @@ export function SpendingTrend({ dailyTotals, month, budget }: SpendingTrendProps
               <Area
                 type="monotone"
                 dataKey="cumulative"
-                stroke="#8b5cf6"
+                stroke="var(--chart-1)"
                 strokeWidth={2}
                 fill="url(#spendFill)"
               />

@@ -39,10 +39,10 @@ export function Header() {
       <div className="flex items-center gap-3">
         <MobileSidebar />
         <div>
-          <h2 className="text-lg font-semibold">
+          <h2 className="font-display text-xl tracking-tight">
             {greeting}, {firstName}! 👋
           </h2>
-          <p className="text-sm text-muted-foreground hidden sm:block">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground hidden sm:block">
             {dateString}
           </p>
         </div>

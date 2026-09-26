@@ -161,7 +161,7 @@ export function TaskCard({
 
         {/* Recurrence Badge */}
         {task.recurrence && (
-          <Badge variant="outline" className="shrink-0 text-[10px] px-1.5 py-0 h-5 text-violet-600 dark:text-violet-400">
+          <Badge variant="outline" className="shrink-0 text-[10px] px-1.5 py-0 h-5 text-primary">
             <Repeat className="h-2.5 w-2.5 mr-0.5" />
             {TASK_RECURRENCES.find((r) => r.value === task.recurrence)?.label ?? task.recurrence}
           </Badge>
@@ -314,7 +314,7 @@ export function TaskCard({
           )}
 
           {task.recurrence && (
-            <Badge variant="outline" className="text-xs text-violet-600 dark:text-violet-400">
+            <Badge variant="outline" className="text-xs text-primary">
               <Repeat className="h-3 w-3 mr-0.5" />
               {TASK_RECURRENCES.find((r) => r.value === task.recurrence)?.label ?? task.recurrence}
             </Badge>

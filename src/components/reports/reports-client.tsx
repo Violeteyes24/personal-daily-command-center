@@ -97,7 +97,7 @@ export function ReportsClient({ report, type, dateParam }: ReportsClientProps) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Reports</h1>
+          <h1 className="font-display text-4xl tracking-tight">Reports</h1>
           <p className="text-muted-foreground">
             Insights and trends across all your data.
           </p>
@@ -222,7 +222,7 @@ export function ReportsClient({ report, type, dateParam }: ReportsClientProps) {
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={30} />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Bar dataKey="created" fill="var(--muted-foreground)" radius={[2, 2, 0, 0]} name="Created" />
-                  <Bar dataKey="completed" fill="hsl(142, 76%, 36%)" radius={[2, 2, 0, 0]} name="Completed" />
+                  <Bar dataKey="completed" fill="var(--chart-1)" radius={[2, 2, 0, 0]} name="Completed" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -242,8 +242,8 @@ export function ReportsClient({ report, type, dateParam }: ReportsClientProps) {
                 <AreaChart data={report.dailyExpenses}>
                   <defs>
                     <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -256,7 +256,7 @@ export function ReportsClient({ report, type, dateParam }: ReportsClientProps) {
                   <Area
                     type="monotone"
                     dataKey="total"
-                    stroke="hsl(142, 76%, 36%)"
+                    stroke="var(--chart-1)"
                     fill="url(#expGrad)"
                     name="Spent"
                   />
@@ -349,12 +349,12 @@ export function ReportsClient({ report, type, dateParam }: ReportsClientProps) {
               <AreaChart data={report.dailyMood}>
                 <defs>
                   <linearGradient id="moodGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="energyGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis
@@ -364,8 +364,8 @@ export function ReportsClient({ report, type, dateParam }: ReportsClientProps) {
                 />
                 <YAxis domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 11 }} width={30} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Area type="monotone" dataKey="mood" stroke="hsl(142, 76%, 36%)" fill="url(#moodGrad)" name="Mood" />
-                <Area type="monotone" dataKey="energy" stroke="hsl(217, 91%, 60%)" fill="url(#energyGrad)" name="Energy" />
+                <Area type="monotone" dataKey="mood" stroke="var(--chart-1)" fill="url(#moodGrad)" name="Mood" />
+                <Area type="monotone" dataKey="energy" stroke="var(--chart-2)" fill="url(#energyGrad)" name="Energy" />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
