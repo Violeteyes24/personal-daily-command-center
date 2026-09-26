@@ -155,7 +155,7 @@ export function HabitsClient({ initialHabits }: HabitsClientProps) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Habits</h1>
+          <h1 className="font-display text-3xl sm:text-4xl tracking-tight">Habits</h1>
           <p className="text-sm text-muted-foreground">
             Build streaks and track your daily habits.
           </p>
@@ -180,7 +180,7 @@ export function HabitsClient({ initialHabits }: HabitsClientProps) {
               <LayoutGrid className="h-4 w-4" />
             </Button>
           </div>
-          <Button onClick={() => setIsFormOpen(true)}>
+          <Button variant="cta" onClick={() => setIsFormOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Habit
           </Button>

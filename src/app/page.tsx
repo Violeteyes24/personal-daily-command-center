@@ -20,14 +20,14 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,oklch(0.32_0.12_293),oklch(0.14_0.03_295)_60%)]">
       {/* Navigation */}
       <nav className="container mx-auto flex items-center justify-between p-6">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cta text-cta-foreground font-mono text-xs font-semibold">
             CC
           </div>
-          <span className="text-xl font-bold text-white">Command Center</span>
+          <span className="font-display text-2xl tracking-tight text-white">Command Center</span>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/sign-in">
@@ -36,26 +36,29 @@ export default async function HomePage() {
             </Button>
           </Link>
           <Link href="/sign-up">
-            <Button>Get Started</Button>
+            <Button variant="cta">Get Started</Button>
           </Link>
         </div>
       </nav>
 
       {/* Hero Section */}
       <main className="container mx-auto px-6 py-20 text-center">
-        <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl">
+        <p className="mb-6 font-mono text-xs uppercase tracking-[0.25em] text-violet-300/80">
+          Tasks · Habits · Money · Mood
+        </p>
+        <h1 className="font-display text-6xl leading-[0.95] tracking-tight text-white sm:text-7xl">
           Your Personal
-          <span className="block bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+          <span className="block italic bg-gradient-to-r from-violet-300 to-fuchsia-400 bg-clip-text text-transparent">
             Life Dashboard
           </span>
         </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-300">
+        <p className="mx-auto mt-6 max-w-2xl text-lg text-violet-100/70">
           Track your tasks, build habits, manage expenses, and reflect on your
           day — all in one beautiful, simple dashboard.
         </p>
         <div className="mt-10 flex items-center justify-center gap-4">
           <Link href="/sign-up">
-            <Button size="lg" className="gap-2">
+            <Button size="lg" variant="cta" className="gap-2">
               Start for Free <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
@@ -97,7 +100,7 @@ export default async function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="container mx-auto border-t border-slate-700 px-6 py-8 text-center text-sm text-slate-400">
+      <footer className="container mx-auto border-t border-white/10 px-6 py-8 text-center font-mono text-xs uppercase tracking-widest text-violet-200/50">
         Built with Next.js, TypeScript, and ❤️
       </footer>
     </div>
@@ -114,12 +117,12 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-6 text-left transition-colors hover:border-slate-600 hover:bg-slate-800">
-      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-6 text-left transition-colors hover:border-violet-400/40 hover:bg-white/[0.06]">
+      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-violet-400/15 text-violet-300">
         {icon}
       </div>
-      <h3 className="text-lg font-semibold text-white">{title}</h3>
-      <p className="mt-2 text-sm text-slate-400">{description}</p>
+      <h3 className="font-display text-2xl tracking-tight text-white">{title}</h3>
+      <p className="mt-2 text-sm text-violet-100/60">{description}</p>
     </div>
   );
 }

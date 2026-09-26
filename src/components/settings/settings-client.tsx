@@ -129,7 +129,7 @@ export function SettingsClient({ user, accounts }: SettingsClientProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
+        <h1 className="font-display text-4xl tracking-tight">Settings</h1>
         <p className="text-muted-foreground">
           Manage your account and preferences.
         </p>

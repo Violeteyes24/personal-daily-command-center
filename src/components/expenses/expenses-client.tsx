@@ -326,12 +326,12 @@ export function ExpensesClient({
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Expenses</h1>
+          <h1 className="font-display text-4xl tracking-tight">Expenses</h1>
           <p className="text-muted-foreground">
             Track your spending and manage your budget.
           </p>
         </div>
-        <Button onClick={() => setIsFormOpen(true)}>
+        <Button variant="cta" onClick={() => setIsFormOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Expense
         </Button>
@@ -373,7 +373,7 @@ export function ExpensesClient({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{formatCurrency(visibleTotal)}</p>
+              <p className="font-display text-4xl tracking-tight">{formatCurrency(visibleTotal)}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {filteredExpenses.length} transaction
                 {filteredExpenses.length !== 1 ? "s" : ""}

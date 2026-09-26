@@ -109,12 +109,12 @@ export function MoodTrendChart({ entries }: MoodTrendChartProps) {
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="moodGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                  <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="energyGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
@@ -143,19 +143,19 @@ export function MoodTrendChart({ entries }: MoodTrendChartProps) {
               <Area
                 type="monotone"
                 dataKey="mood"
-                stroke="#22c55e"
+                stroke="var(--chart-1)"
                 strokeWidth={2}
                 fill="url(#moodGrad)"
-                dot={{ r: 3, fill: "#22c55e" }}
+                dot={{ r: 3, fill: "var(--chart-1)" }}
                 activeDot={{ r: 5 }}
               />
               <Area
                 type="monotone"
                 dataKey="energy"
-                stroke="#3b82f6"
+                stroke="var(--chart-2)"
                 strokeWidth={2}
                 fill="url(#energyGrad)"
-                dot={{ r: 3, fill: "#3b82f6" }}
+                dot={{ r: 3, fill: "var(--chart-2)" }}
                 activeDot={{ r: 5 }}
               />
             </AreaChart>
@@ -165,11 +165,11 @@ export function MoodTrendChart({ entries }: MoodTrendChartProps) {
         {/* Legend */}
         <div className="flex items-center justify-center gap-6 mt-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <div className="h-2.5 w-2.5 rounded-full bg-green-500" />
+            <div className="h-2.5 w-2.5 rounded-full bg-chart-1" />
             Mood
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+            <div className="h-2.5 w-2.5 rounded-full bg-chart-2" />
             Energy
           </div>
         </div>
